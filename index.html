@@ -3,14 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>JMVN - Generador de Trazo Pro</title>
+    <title>JMVN - Generador Pro V2.1</title>
     <style>
         :root { --accent: #ff0055; --bg: #111; --text: #eee; --panel: #222; }
         body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); display: flex; flex-direction: column; align-items: center; padding: 20px; margin: 0; touch-action: none; }
         
-        header { text-align: center; margin-bottom: 20px; }
+        header { text-align: center; margin-bottom: 20px; width: 100%; position: relative; }
         h1 { margin: 0; font-size: 2.2rem; letter-spacing: 2px; text-transform: uppercase; }
         .red-text { color: var(--accent); } .white-text { color: white; }
+
+        /* Botón de Galería en Header */
+        .header-btn { position: absolute; right: 20px; top: 10px; background: #333; border: 1px solid #555; padding: 8px 15px; border-radius: 5px; color: white; cursor: pointer; display: flex; align-items: center; gap: 8px; }
+        .header-btn:hover { background: #444; border-color: var(--accent); }
 
         .container { background: var(--panel); padding: 25px; border-radius: 15px; box-shadow: 0 10px 40px rgba(0,0,0,0.8); width: 95%; max-width: 1400px; display: grid; grid-template-columns: 320px 1fr; gap: 25px; }
         
@@ -64,6 +68,38 @@
         .btn-confirm { background: #00C853; }
         .btn-discard { background: #D50000; }
 
+        /* --- MODALES (Galería y Exportar) --- */
+        .modal-backdrop {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9); z-index: 200; display: none;
+            justify-content: center; align-items: center;
+        }
+        .modal-content {
+            background: #222; padding: 25px; border-radius: 12px; width: 90%; max-width: 600px;
+            border: 1px solid #444; max-height: 85vh; overflow-y: auto; text-align: center;
+        }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #333; padding-bottom: 10px; }
+        .close-btn { background: none; border: none; font-size: 1.5rem; cursor: pointer; width: auto; padding: 0; color: #888; }
+        
+        /* Lista de Proyectos */
+        .project-list { list-style: none; padding: 0; margin: 0; text-align: left; }
+        .project-item { 
+            background: #333; margin-bottom: 10px; padding: 15px; border-radius: 8px; 
+            display: flex; justify-content: space-between; align-items: center; border: 1px solid #333;
+        }
+        .project-item:hover { border-color: var(--accent); }
+        .p-info h4 { margin: 0 0 5px 0; color: white; }
+        .p-info span { font-size: 0.8rem; color: #aaa; }
+        .btn-load { width: auto; padding: 8px 20px; font-size: 0.8rem; background: #2196F3; }
+
+        /* Opciones de Exportación */
+        .export-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin-top: 20px; }
+        .export-option { background: #333; padding: 20px; border-radius: 8px; cursor: pointer; border: 2px solid transparent; transition: 0.2s; }
+        .export-option:hover { border-color: var(--accent); background: #2a1a1f; }
+        .export-icon { font-size: 2rem; margin-bottom: 10px; display: block; }
+        .export-label { font-weight: bold; color: white; display: block; }
+        .export-desc { font-size: 0.75rem; color: #aaa; margin-top: 5px; display: block; }
+
         /* Controles de Flechas para MOVER */
         #dpad {
             position: absolute; bottom: 90px; right: 20px; width: 120px; height: 120px;
@@ -76,14 +112,14 @@
         .footer { margin-top: 30px; text-align: center; color: #555; font-size: 0.9rem; border-top: 1px solid #333; padding-top: 20px; width: 100%; }
         .gemini-tag { color: var(--accent); font-weight: bold; font-size: 0.8rem; letter-spacing: 1px; display: block; margin-top: 5px; }
 
-        /* Responsive */
-        @media (max-width: 900px) { .container { grid-template-columns: 1fr; } #visualWrapper { height: 500px; } }
+        @media (max-width: 900px) { .container { grid-template-columns: 1fr; } #visualWrapper { height: 500px; } .header-btn { position: relative; right: auto; top: auto; display: inline-flex; margin-bottom: 15px; } }
     </style>
 </head>
 <body>
 
     <header>
         <h1><span class="red-text">HERRAMIENTAS INTELIGENTES</span> <span class="white-text">JMVN</span></h1>
+        <button class="header-btn" onclick="openGallery()">📂 Ver Diseños Guardados</button>
     </header>
 
     <div class="container">
@@ -93,8 +129,8 @@
                 <input type="text" id="projectName" placeholder="Ej: Logo Camisa 01" autocomplete="off">
             </div>
 
-            <div class="control-group">
-                <label>1. Imagen del Logo</label>
+            <div class="control-group" id="imgInputGroup">
+                <label>1. Imagen del Logo (Nuevo)</label>
                 <input type="file" id="imageInput" accept="image/*">
             </div>
 
@@ -105,7 +141,7 @@
             </div>
 
             <div class="control-group">
-                <label>3. Distribución</label>
+                <label>3. Distribución (Solo Nuevos)</label>
                 <select id="mode" class="param-input">
                     <option value="adaptive">Trazo Adaptativo (Curvas)</option>
                     <option value="honeycomb">Panal Orgánico</option>
@@ -133,14 +169,14 @@
                 <input type="range" id="radius" class="param-input" min="1" max="20" step="0.5" value="2.5">
             </div>
 
-            <button onclick="processImage()">Generar Trama Base</button>
+            <button onclick="processImage()" id="btnGenerate">Generar Trama Base</button>
             <button class="edit-mode-btn" id="btnOpenEditor" onclick="openEditor()" disabled>🛠️ Entrar a Modo Edición</button>
             <div class="dimensions-display" id="dimDisplay">0 cm x 0 cm</div>
         </div>
 
         <div id="visualWrapper">
             <div id="svgContent">
-                <div style="color:#bbb; text-align:center">Sube imagen y genera trama<br>para habilitar opciones.</div>
+                <div style="color:#bbb; text-align:center">Sube imagen o carga proyecto<br>para visualizar.</div>
             </div>
 
             <div id="editorOverlay">
@@ -168,11 +204,50 @@
         </div>
     </div>
 
+    <div id="galleryModal" class="modal-backdrop">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 style="margin:0">Diseños Guardados</h3>
+                <button class="close-btn" onclick="closeGallery()">×</button>
+            </div>
+            <div id="galleryList" class="project-list">
+                <div style="padding:20px; color:#aaa;">Cargando proyectos...</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="exportModal" class="modal-backdrop">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 style="margin:0">Seleccionar Formato</h3>
+                <button class="close-btn" onclick="closeExport()">×</button>
+            </div>
+            <p>El diseño se guardará en la nube y se descargará en:</p>
+            <div class="export-grid">
+                <div class="export-option" onclick="finalizeExport('svg')">
+                    <span class="export-icon">🎨</span>
+                    <span class="export-label">SVG</span>
+                    <span class="export-desc">Web, Illustrator, Corel</span>
+                </div>
+                <div class="export-option" onclick="finalizeExport('plt')">
+                    <span class="export-icon">📠</span>
+                    <span class="export-label">PLT (HPGL)</span>
+                    <span class="export-desc">Plotters, Láser, Corte</span>
+                </div>
+                <div class="export-option" onclick="finalizeExport('ai')">
+                    <span class="export-icon">✒️</span>
+                    <span class="export-label">AI (EPS)</span>
+                    <span class="export-desc">Adobe Illustrator Legacy</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <canvas id="procCanvas" style="display:none;"></canvas>
 
     <div class="footer">
         Desarrollado por <strong>JESÚS VALLEJO</strong><br>
-        <span class="gemini-tag">POWERED BY GEMINI 3 PRO</span>
+        <span class="gemini-tag">POWERED BY GEMINI 3 PRO - V2.1 (FIXED)</span>
         <div style="margin-top:10px; font-style:italic; font-size:0.75rem">
             HERRAMIENTA DE USO EXCLUSIVO PARA EMPLEADOS DE <b>VIVA ROUSS</b> Y <b>MISS ROUSS</b>.
         </div>
@@ -180,7 +255,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
-        import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, getDocs, query, orderBy, limit, serverTimestamp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyCngQL1pdqghv2vbjkPycT1Xf0C46f7jYs",
@@ -194,41 +269,82 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        // Exportar función global para guardar
-        window.saveToFirebase = async (points, svgString) => {
-            const name = document.getElementById('projectName').value.trim();
-            if(!name) { alert("⚠️ Se descargará el SVG, pero NO se guardó en Nube porque falta el Nombre del Proyecto."); return; }
+        // --- FUNCIONES DE BASE DE DATOS ---
+
+        window.fetchProjectsFromDB = async () => {
+            const list = document.getElementById('galleryList');
+            list.innerHTML = '<div style="padding:20px; color:#aaa;">Cargando...</div>';
             
             try {
+                const q = query(collection(db, "proyectos_pedreria"), orderBy("fecha", "desc"), limit(20));
+                const querySnapshot = await getDocs(q);
+                
+                list.innerHTML = "";
+                if(querySnapshot.empty) {
+                    list.innerHTML = '<div style="padding:20px;">No hay proyectos guardados aún.</div>';
+                    return;
+                }
+
+                querySnapshot.forEach((doc) => {
+                    const data = doc.data();
+                    const date = data.fecha ? data.fecha.toDate().toLocaleDateString() : "S/F";
+                    const safeName = data.nombre_proyecto || "Sin nombre";
+                    
+                    const li = document.createElement('div');
+                    li.className = 'project-item';
+                    li.innerHTML = `
+                        <div class="p-info">
+                            <h4>${safeName}</h4>
+                            <span>${date} • ${data.puntos_total || "?"} puntos</span>
+                        </div>
+                        <button class="btn-load" onclick='loadProjectData(${JSON.stringify(data).replace(/'/g, "&#39;")})'>CARGAR</button>
+                    `;
+                    list.appendChild(li);
+                });
+            } catch (e) {
+                console.error(e);
+                list.innerHTML = '<div style="color:red">Error cargando lista.</div>';
+            }
+        };
+
+        window.saveToFirebase = async (points, svgString, format) => {
+            const name = document.getElementById('projectName').value.trim();
+            if(!name) return; 
+            
+            try {
+                const pointsJson = JSON.stringify(points);
+
                 await addDoc(collection(db, "proyectos_pedreria"), {
                     nombre_proyecto: name,
                     puntos_total: points.length,
-                    svg_generado: svgString,
+                    puntos_json: pointsJson, 
+                    svg_generado: svgString, // Guardamos también el SVG para backup
+                    formato_exportado: format,
                     config: window.getLastConfig(),
                     fecha: serverTimestamp(),
                     autor: "JESÚS VALLEJO / STAFF"
                 });
-                console.log("✅ Guardado en Firebase");
+                console.log("✅ Guardado en Firebase con JSON de puntos.");
             } catch(e) {
-                console.error(e);
-                alert("Error de conexión con base de datos.");
+                console.error("Error guardando:", e);
+                alert("⚠️ Se descargó el archivo, pero hubo un error guardando en la base de datos.");
             }
         };
     </script>
 
     <script>
         // --- ESTADO GLOBAL ---
-        let globalPoints = [];     // Array actual de puntos {x, y}
-        let backupPoints = [];     // Para "Descartar"
-        let canvasWidth = 0;       // Dimensiones internas
-        let canvasHeight = 0;
-        let imgAspectRatio = 1;
+        let globalPoints = [];     
+        let backupPoints = [];     
+        let canvasWidth = 1000;       
+        let canvasHeight = 1000;
+        let isLoadedProject = false; 
         
-        let manualEditsMade = false; // Flag de seguridad
+        let manualEditsMade = false;
 
         // --- ESTADO DEL EDITOR ---
-        let editTool = 'delete'; // delete, add, move
-        let selectedPointIdx = -1; // Para herramienta mover
+        let editTool = 'delete';
+        let selectedPointIdx = -1;
         let editorScale = 1;
         let editorOffsetX = 0;
         let editorOffsetY = 0;
@@ -237,44 +353,48 @@
         
         // --- INPUTS UI ---
         const inputs = document.querySelectorAll('.param-input');
-        inputs.forEach(i => i.addEventListener('input', updateLabels));
+        inputs.forEach(i => i.addEventListener('input', handleParamChange));
         
-        // Advertencia de seguridad en sliders
+        document.getElementById('realWidthCm').addEventListener('input', updateLabels);
+        document.getElementById('radius').addEventListener('input', () => {
+            if(isLoadedProject) renderSVGPreview(); 
+            updateLabels();
+        });
+
         inputs.forEach(i => i.addEventListener('mousedown', checkManualEditsWarning));
         inputs.forEach(i => i.addEventListener('touchstart', checkManualEditsWarning));
 
         function checkManualEditsWarning() {
-            if(manualEditsMade) {
-                const proceed = confirm("⚠️ ¡ADVERTENCIA!\n\nHiciste ediciones manuales (borrar/mover puntos). Si cambias los parámetros ahora, se regenerará todo y PERDERÁS tus ediciones manuales.\n\n¿Deseas continuar y reiniciar el diseño?");
+            if(manualEditsMade && !isLoadedProject) {
+                const proceed = confirm("⚠️ ¡ADVERTENCIA!\n\nHiciste ediciones manuales. Si cambias la densidad/ángulo, se regenerará todo y PERDERÁS tus ediciones.\n\n¿Continuar?");
                 if(proceed) {
                     manualEditsMade = false;
-                    processImage(); // Regenerar
-                } else {
-                    // Intentar revertir el input (complejo en UI, pero al menos paramos la lógica)
-                    // En este caso simple, el usuario soltará el click y el evento 'change' disparará processImage si no lo detenemos.
-                    // Una solución rápida es recargar la imagen procesada anterior, pero dejaremos que el usuario decida.
+                    processImage(); 
                 }
             }
         }
 
-        // Detectar cambios en sliders para regenerar (solo si no hay ediciones manuales pendientes)
-        document.getElementById('realWidthCm').addEventListener('input', updateLabels);
-        
+        function handleParamChange(e) {
+            updateLabels();
+            if(isLoadedProject && (e.target.id === 'yStep' || e.target.id === 'xStep' || e.target.id === 'angle')) {
+                return;
+            }
+        }
+
         function updateLabels() {
             const realW = parseFloat(document.getElementById('realWidthCm').value) || 25;
-            // Asumimos canvasWidth interno de 1000px por defecto al procesar
-            const scaleFactor = canvasWidth > 0 ? (realW * 10) / canvasWidth : 0.025; // mm por pixel
+            const w = canvasWidth > 0 ? canvasWidth : 1000;
+            const scaleFactor = (realW * 10) / w; 
             
             document.getElementById('yStepVal').innerText = (document.getElementById('yStep').value * scaleFactor).toFixed(1);
             document.getElementById('xStepVal').innerText = (document.getElementById('xStep').value * scaleFactor).toFixed(1);
             document.getElementById('angleVal').innerText = document.getElementById('angle').value;
-            // Radio es radio, diámetro es x2
+            
             const rPx = parseFloat(document.getElementById('radius').value);
             document.getElementById('radiusVal').innerText = (rPx * 2 * scaleFactor).toFixed(1);
 
-            // Calcular dimensiones finales
             if(canvasHeight > 0) {
-                const hCm = (canvasHeight * (realW / canvasWidth)).toFixed(1);
+                const hCm = (canvasHeight * (realW / w)).toFixed(1);
                 document.getElementById('dimDisplay').innerText = `Dimensiones Finales: ${realW} cm x ${hCm} cm`;
             }
         }
@@ -283,15 +403,97 @@
             return {
                 mode: document.getElementById('mode').value,
                 realWidth: document.getElementById('realWidthCm').value,
+                radiusPx: document.getElementById('radius').value,
                 generatedDate: new Date().toISOString()
             };
         }
 
-        // --- PROCESAMIENTO DE IMAGEN ---
+        // --- GALERÍA Y CARGA ---
+        function openGallery() {
+            document.getElementById('galleryModal').style.display = 'flex';
+            if(window.fetchProjectsFromDB) window.fetchProjectsFromDB();
+        }
+        function closeGallery() { document.getElementById('galleryModal').style.display = 'none'; }
+
+        // --- CARGA DE PROYECTO (VERSION MEJORADA V2.1) ---
+        window.loadProjectData = (data) => {
+            if(confirm("Al cargar un proyecto se borrará el trabajo actual. ¿Continuar?")) {
+                try {
+                    globalPoints = [];
+
+                    // CASO 1: PROYECTO NUEVO (Tiene JSON de puntos)
+                    if (data.puntos_json) {
+                        globalPoints = JSON.parse(data.puntos_json);
+                        console.log("Carga: Modo JSON nativo");
+                    } 
+                    // CASO 2: PROYECTO ANTIGUO (Solo tiene SVG) - INTENTO DE RESCATE
+                    else if (data.svg_generado) {
+                        console.log("Carga: Modo rescate SVG");
+                        const parser = new DOMParser();
+                        const doc = parser.parseFromString(data.svg_generado, "image/svg+xml");
+                        const circles = doc.querySelectorAll('circle');
+                        
+                        if(circles.length > 0) {
+                            circles.forEach(c => {
+                                globalPoints.push({
+                                    x: parseFloat(c.getAttribute('cx')),
+                                    y: parseFloat(c.getAttribute('cy'))
+                                });
+                            });
+                            alert("⚠️ ESTE PROYECTO ERA ANTIGUO.\n\nEl sistema ha reconstruido los puntos desde el dibujo visual. Ahora podrás editar el tamaño de piedra y guardar en los nuevos formatos.");
+                        } else {
+                            alert("❌ Error: El archivo antiguo está vacío o dañado.");
+                            return;
+                        }
+                    } else {
+                        alert("❌ Error: Este proyecto no tiene datos válidos.");
+                        return;
+                    }
+
+                    // Restaurar Configuración Básica
+                    document.getElementById('projectName').value = data.nombre_proyecto;
+                    if(data.config) {
+                        document.getElementById('realWidthCm').value = data.config.realWidth || 25;
+                        document.getElementById('radius').value = data.config.radiusPx || 2.5;
+                    }
+
+                    // Ajustar entorno
+                    isLoadedProject = true;
+                    manualEditsMade = false; 
+                    
+                    // Recalcular tamaño del lienzo basado en los puntos
+                    let maxX = 0, maxY = 0;
+                    globalPoints.forEach(p => {
+                        if(p.x > maxX) maxX = p.x;
+                        if(p.y > maxY) maxY = p.y;
+                    });
+                    canvasWidth = maxX + 50; 
+                    canvasHeight = maxY + 50;
+                    
+                    // UI Updates
+                    document.getElementById('btnOpenEditor').disabled = false;
+                    document.getElementById('imgInputGroup').style.display = 'none'; 
+                    document.getElementById('btnGenerate').style.display = 'none'; 
+                    closeGallery();
+                    
+                    renderSVGPreview();
+                    updateLabels();
+
+                } catch(e) {
+                    console.error(e);
+                    alert("Error procesando datos del proyecto.");
+                }
+            }
+        };
+
+        // --- PROCESAMIENTO DE IMAGEN (NUEVO) ---
         function processImage() {
-            manualEditsMade = false; 
             const input = document.getElementById('imageInput');
             if (!input.files[0]) return alert("Selecciona una imagen primero.");
+
+            manualEditsMade = false; 
+            isLoadedProject = false;
+            document.getElementById('btnGenerate').style.display = 'block';
 
             const reader = new FileReader();
             reader.onload = (e) => {
@@ -300,7 +502,6 @@
                     const c = document.getElementById('procCanvas');
                     const ctx = c.getContext('2d', { willReadFrequently: true });
                     
-                    // Normalizar tamaño a 1000px ancho
                     const maxW = 1000;
                     const scale = maxW / img.width;
                     c.width = maxW;
@@ -308,7 +509,6 @@
                     
                     canvasWidth = c.width;
                     canvasHeight = c.height;
-                    imgAspectRatio = c.width / c.height;
 
                     ctx.fillStyle = "white";
                     ctx.fillRect(0,0,c.width, c.height);
@@ -336,7 +536,6 @@
             
             globalPoints = [];
 
-            // Algoritmo de barrido rotado
             for (let y = -h; y < h * 2; y += yStep) {
                 let segment = [];
                 for (let x = -w; x < w * 2; x += 1) {
@@ -345,7 +544,6 @@
 
                     if (rotX >= 0 && rotX < w && rotY >= 0 && rotY < h) {
                         const idx = (rotY * w + rotX) * 4;
-                        // Oscuro = Puntos
                         if (imgData.data[idx] < 150) {
                             segment.push({x: rotX, y: rotY});
                         } else if (segment.length > 0) {
@@ -381,22 +579,19 @@
             document.getElementById('svgContent').innerHTML = svg;
         }
 
-        // --- MODO EDICIÓN (CANVAS INTERACTIVO) ---
-        
+        // --- MODO EDICIÓN (CANVAS) ---
         const editorCanvas = document.getElementById('editorCanvas');
         const ctxEdit = editorCanvas.getContext('2d');
         let initialPinchDist = 0;
 
         function openEditor() {
-            backupPoints = JSON.parse(JSON.stringify(globalPoints)); // Clonar
+            backupPoints = JSON.parse(JSON.stringify(globalPoints)); 
             document.getElementById('editorOverlay').style.display = 'flex';
             
-            // Ajustar canvas al tamaño de pantalla real del usuario
             const rect = document.getElementById('visualWrapper').getBoundingClientRect();
             editorCanvas.width = rect.width;
             editorCanvas.height = rect.height;
             
-            // Centrar vista
             editorScale = Math.min(editorCanvas.width / canvasWidth, editorCanvas.height / canvasHeight) * 0.9;
             editorOffsetX = (editorCanvas.width - canvasWidth * editorScale) / 2;
             editorOffsetY = (editorCanvas.height - canvasHeight * editorScale) / 2;
@@ -406,127 +601,78 @@
 
         function setTool(t) {
             editTool = t;
-            selectedPointIdx = -1; // Reset selección
+            selectedPointIdx = -1; 
             document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
             document.querySelector(`.tool-btn.${t}`).classList.add('active');
-            
             document.getElementById('dpad').style.display = (t === 'move') ? 'grid' : 'none';
             drawEditorLoop();
         }
 
         function drawEditorLoop() {
             ctxEdit.clearRect(0, 0, editorCanvas.width, editorCanvas.height);
-            
-            // Fondo
             ctxEdit.save();
             ctxEdit.translate(editorOffsetX, editorOffsetY);
             ctxEdit.scale(editorScale, editorScale);
             
-            // Dibujar área de trabajo (papel blanco)
             ctxEdit.fillStyle = "white";
             ctxEdit.fillRect(0,0, canvasWidth, canvasHeight);
             
             const r = parseFloat(document.getElementById('radius').value);
 
-            // Dibujar puntos
             for(let i=0; i<globalPoints.length; i++) {
                 const p = globalPoints[i];
                 ctxEdit.beginPath();
                 ctxEdit.arc(p.x, p.y, r, 0, Math.PI*2);
                 
                 if (editTool === 'delete') {
-                    // Contorno rojo, relleno negro
-                    ctxEdit.fillStyle = "black";
-                    ctxEdit.fill();
-                    ctxEdit.lineWidth = r/2;
-                    ctxEdit.strokeStyle = "red";
-                    ctxEdit.stroke();
+                    ctxEdit.fillStyle = "black"; ctxEdit.fill();
+                    ctxEdit.lineWidth = r/2; ctxEdit.strokeStyle = "red"; ctxEdit.stroke();
                 } 
                 else if (editTool === 'move' && i === selectedPointIdx) {
-                    // Azul seleccionado
-                    ctxEdit.fillStyle = "#2196F3";
-                    ctxEdit.fill();
-                    // Indicador extra
-                    ctxEdit.strokeStyle = "#2196F3";
-                    ctxEdit.lineWidth = 2;
-                    ctxEdit.beginPath();
-                    ctxEdit.arc(p.x, p.y, r * 2, 0, Math.PI*2);
-                    ctxEdit.stroke();
+                    ctxEdit.fillStyle = "#2196F3"; ctxEdit.fill();
+                    ctxEdit.strokeStyle = "#2196F3"; ctxEdit.lineWidth = 2;
+                    ctxEdit.beginPath(); ctxEdit.arc(p.x, p.y, r * 2, 0, Math.PI*2); ctxEdit.stroke();
                 }
                 else {
-                    // Normal
-                    ctxEdit.fillStyle = "black";
-                    ctxEdit.fill();
+                    ctxEdit.fillStyle = "black"; ctxEdit.fill();
                 }
             }
-
-            // Si modo Agregar, dibujar cursor fantasma si hay posición
-            // (Omitido para simplificar touch, se usa click directo)
-
             ctxEdit.restore();
         }
 
-        // --- INTERACCIÓN DEL EDITOR ---
-
-        // Transformación de Coordenadas: Pantalla -> Lienzo Interno
+        // Helpers de interacción
         function screenToWorld(sx, sy) {
-            return {
-                x: (sx - editorOffsetX) / editorScale,
-                y: (sy - editorOffsetY) / editorScale
-            };
+            return { x: (sx - editorOffsetX) / editorScale, y: (sy - editorOffsetY) / editorScale };
         }
 
-        // Manejo de Mouse / Touch
         editorCanvas.addEventListener('mousedown', startPan);
         editorCanvas.addEventListener('mousemove', movePan);
         editorCanvas.addEventListener('mouseup', endPan);
         editorCanvas.addEventListener('wheel', handleWheel);
         
-        // Touch para móviles (Zoom pinza)
         editorCanvas.addEventListener('touchstart', (e) => {
             if(e.touches.length === 2) {
-                isDragging = false; // Zoom mode
-                initialPinchDist = Math.hypot(
-                    e.touches[0].pageX - e.touches[1].pageX,
-                    e.touches[0].pageY - e.touches[1].pageY
-                );
-            } else {
-                startPan(e.touches[0]);
-            }
+                isDragging = false; 
+                initialPinchDist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY);
+            } else startPan(e.touches[0]);
         });
-        
         editorCanvas.addEventListener('touchmove', (e) => {
             e.preventDefault();
             if(e.touches.length === 2) {
-                const dist = Math.hypot(
-                    e.touches[0].pageX - e.touches[1].pageX,
-                    e.touches[0].pageY - e.touches[1].pageY
-                );
-                const delta = dist - initialPinchDist;
-                const zoomFactor = delta * 0.005;
-                
-                // Zoom al centro de los dedos (simplificado: zoom al centro pantalla)
-                const s = 1 + zoomFactor;
-                editorScale *= s;
+                const dist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY);
+                const zoomFactor = (dist - initialPinchDist) * 0.005;
+                editorScale *= (1 + zoomFactor);
                 initialPinchDist = dist;
                 drawEditorLoop();
-            } else {
-                movePan(e.touches[0]);
-            }
+            } else movePan(e.touches[0]);
         });
-
-        editorCanvas.addEventListener('touchend', (e) => {
-            if(e.touches.length === 0) endPan(e.changedTouches[0]);
-        });
-
+        editorCanvas.addEventListener('touchend', (e) => { if(e.touches.length === 0) endPan(e.changedTouches[0]); });
 
         let startClickTime = 0;
         let didMove = false;
 
         function startPan(e) {
-            isDragging = true;
-            didMove = false;
-            startClickTime = Date.now();
+            isDragging = true; didMove = false; startClickTime = Date.now();
             const rect = editorCanvas.getBoundingClientRect();
             lastMouse = { x: e.clientX - rect.left, y: e.clientY - rect.top };
         }
@@ -534,16 +680,9 @@
         function movePan(e) {
             if (!isDragging) return;
             const rect = editorCanvas.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
-            
-            const dx = x - lastMouse.x;
-            const dy = y - lastMouse.y;
-
-            if (Math.abs(dx) > 2 || Math.abs(dy) > 2) didMove = true;
-
-            editorOffsetX += dx;
-            editorOffsetY += dy;
+            const x = e.clientX - rect.left; const y = e.clientY - rect.top;
+            if (Math.abs(x - lastMouse.x) > 2 || Math.abs(y - lastMouse.y) > 2) didMove = true;
+            editorOffsetX += (x - lastMouse.x); editorOffsetY += (y - lastMouse.y);
             lastMouse = {x, y};
             drawEditorLoop();
         }
@@ -551,8 +690,6 @@
         function endPan(e) {
             isDragging = false;
             const timeDiff = Date.now() - startClickTime;
-            
-            // Si fue un click rápido y no arrastró mucho -> ACCIÓN DE HERRAMIENTA
             if (timeDiff < 300 && !didMove) {
                 const rect = editorCanvas.getBoundingClientRect();
                 const clickX = (e.clientX || e.pageX) - rect.left;
@@ -563,15 +700,9 @@
 
         function handleWheel(e) {
             e.preventDefault();
-            const zoomIntensity = 0.1;
-            const delta = e.deltaY < 0 ? 1 : -1;
-            const s = (delta > 0) ? (1 + zoomIntensity) : (1 / (1 + zoomIntensity));
-            
-            // Zoom hacia el mouse
+            const s = (e.deltaY < 0) ? 1.1 : 0.9;
             const rect = editorCanvas.getBoundingClientRect();
-            const mx = e.clientX - rect.left;
-            const my = e.clientY - rect.top;
-
+            const mx = e.clientX - rect.left; const my = e.clientY - rect.top;
             editorOffsetX = mx - (mx - editorOffsetX) * s;
             editorOffsetY = my - (my - editorOffsetY) * s;
             editorScale *= s;
@@ -581,71 +712,37 @@
         function handleToolClick(sx, sy) {
             const wPos = screenToWorld(sx, sy);
             const r = parseFloat(document.getElementById('radius').value);
-            const clickTol = r * 3 / editorScale; // Tolerancia visual ajustada al zoom
-
-            // Buscar punto cercano
-            let hitIdx = -1;
-            let minDist = r * 2.5; // Radio de detección generoso
+            let hitIdx = -1; let minDist = r * 2.5;
 
             for(let i=0; i<globalPoints.length; i++) {
-                const p = globalPoints[i];
-                const d = Math.hypot(p.x - wPos.x, p.y - wPos.y);
-                if (d < minDist) {
-                    minDist = d;
-                    hitIdx = i;
-                }
+                const d = Math.hypot(globalPoints[i].x - wPos.x, globalPoints[i].y - wPos.y);
+                if (d < minDist) { minDist = d; hitIdx = i; }
             }
 
-            // Lógica por herramienta
-            if (editTool === 'delete') {
-                if (hitIdx !== -1) {
-                    globalPoints.splice(hitIdx, 1);
-                    manualEditsMade = true;
-                }
-            }
-            else if (editTool === 'add') {
-                if (hitIdx === -1) { // Solo agregar si no clickeó uno existente
-                    // Verificar colisión (repelente)
-                    let safe = true;
-                    for(let p of globalPoints) {
-                        if(Math.hypot(p.x - wPos.x, p.y - wPos.y) < r * 2.1) {
-                            safe = false; break;
-                        }
-                    }
-                    if(safe) {
-                        globalPoints.push({x: wPos.x, y: wPos.y});
-                        manualEditsMade = true;
-                    }
-                }
-            }
-            else if (editTool === 'move') {
-                if (hitIdx !== -1) {
-                    selectedPointIdx = hitIdx; // Seleccionar
-                } else if (selectedPointIdx !== -1) {
-                    // Si ya hay seleccionado y clickea vacío -> mover ahí (rápido)
+            if (editTool === 'delete' && hitIdx !== -1) {
+                globalPoints.splice(hitIdx, 1); manualEditsMade = true;
+            } else if (editTool === 'add' && hitIdx === -1) {
+                globalPoints.push({x: wPos.x, y: wPos.y}); manualEditsMade = true;
+            } else if (editTool === 'move') {
+                if (hitIdx !== -1) selectedPointIdx = hitIdx;
+                else if (selectedPointIdx !== -1) {
                     globalPoints[selectedPointIdx].x = wPos.x;
                     globalPoints[selectedPointIdx].y = wPos.y;
                     manualEditsMade = true;
-                    // Mantenemos selección para ajuste fino
                 }
             }
             drawEditorLoop();
         }
 
-        // Ajuste fino con flechas
         window.nudge = (dx, dy) => {
             if (selectedPointIdx !== -1) {
-                globalPoints[selectedPointIdx].x += dx;
-                globalPoints[selectedPointIdx].y += dy;
-                manualEditsMade = true;
-                drawEditorLoop();
+                globalPoints[selectedPointIdx].x += dx; globalPoints[selectedPointIdx].y += dy;
+                manualEditsMade = true; drawEditorLoop();
             }
         };
 
-        // --- CIERRE DE EDICIÓN ---
-
         window.discardChanges = () => {
-            if(confirm("¿Descartar cambios y volver al original?")) {
+            if(confirm("¿Descartar cambios y volver al inicio de edición?")) {
                 globalPoints = backupPoints;
                 document.getElementById('editorOverlay').style.display = 'none';
                 manualEditsMade = false;
@@ -653,30 +750,102 @@
             }
         };
 
-        window.confirmChanges = async () => {
-            // 1. Renderizar SVG final
-            renderSVGPreview();
-            const svgString = document.getElementById('svgContent').innerHTML;
+        // --- EXPORTACIÓN Y CONFIRMACIÓN ---
 
-            // 2. Cerrar Editor
-            document.getElementById('editorOverlay').style.display = 'none';
+        window.confirmChanges = () => {
+            const name = document.getElementById('projectName').value.trim();
+            if(!name) { alert("Por favor ingresa un NOMBRE DEL PROYECTO antes de confirmar."); return; }
             
-            // 3. Descargar SVG Local
+            document.getElementById('editorOverlay').style.display = 'none';
+            renderSVGPreview();
+            
+            document.getElementById('exportModal').style.display = 'flex';
+        };
+
+        function closeExport() { document.getElementById('exportModal').style.display = 'none'; }
+
+        window.finalizeExport = async (format) => {
             const name = document.getElementById('projectName').value.trim() || "diseño";
-            const blob = new Blob([svgString], {type: "image/svg+xml"});
+            const svgString = document.getElementById('svgContent').innerHTML;
+            
+            let blob = null;
+            let extension = "";
+
+            if (format === 'svg') {
+                blob = new Blob([svgString], {type: "image/svg+xml"});
+                extension = ".svg";
+            } 
+            else if (format === 'plt') {
+                const pltContent = generatePLT();
+                blob = new Blob([pltContent], {type: "text/plain"});
+                extension = ".plt";
+            }
+            else if (format === 'ai') {
+                const aiContent = generateEPS();
+                blob = new Blob([aiContent], {type: "application/postscript"});
+                extension = ".ai"; 
+            }
+
             const url = URL.createObjectURL(blob);
             const a = document.createElement("a");
             a.href = url;
-            a.download = name + "_JMVN.svg";
+            a.download = name + "_JMVN" + extension;
             a.click();
 
-            // 4. Guardar en BD
             if (window.saveToFirebase) {
-                await window.saveToFirebase(globalPoints, svgString);
+                await window.saveToFirebase(globalPoints, svgString, format);
             }
             
-            alert("✅ Cambios confirmados. Archivo descargado y guardado en la nube.");
+            closeExport();
+            alert(`✅ Archivo ${extension} descargado y proyecto guardado.`);
         };
+
+        // GENERADOR PLT (HPGL)
+        function generatePLT() {
+            const realW_mm = parseFloat(document.getElementById('realWidthCm').value) * 10;
+            const pxToMm = realW_mm / canvasWidth;
+            const mmToPlt = 40; 
+            const scale = pxToMm * mmToPlt;
+            
+            const rPx = parseFloat(document.getElementById('radius').value);
+            const rPlt = (rPx * scale).toFixed(0);
+
+            let plt = "IN;PU;"; 
+            
+            globalPoints.forEach(p => {
+                const x = (p.x * scale).toFixed(0);
+                const y = (-p.y * scale).toFixed(0); 
+                plt += `PU${x},${y};CI${rPlt};`; 
+            });
+            
+            plt += "PU0,0;IN;";
+            return plt;
+        }
+
+        // GENERADOR EPS (Compatible con Illustrator)
+        function generateEPS() {
+            const realW_pt = parseFloat(document.getElementById('realWidthCm').value) * 28.3465; // cm a postscript points
+            const scale = realW_pt / canvasWidth;
+            const h_pt = canvasHeight * scale;
+            const r = parseFloat(document.getElementById('radius').value) * scale;
+
+            let eps = `%!PS-Adobe-3.0 EPSF-3.0
+%%BoundingBox: 0 0 ${realW_pt.toFixed(2)} ${h_pt.toFixed(2)}
+%%Creator: JMVN Tool
+%%Title: Pedreria Export
+%%EndComments
+`;
+            eps += `/c { 0 360 arc fill } def\n0 setgray\n`; 
+
+            globalPoints.forEach(p => {
+                const x = (p.x * scale).toFixed(2);
+                const y = (h_pt - (p.y * scale)).toFixed(2); 
+                eps += `${x} ${y} ${r.toFixed(2)} c\n`;
+            });
+            
+            eps += `%%EOF`;
+            return eps;
+        }
 
     </script>
 </body>
