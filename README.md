@@ -1,1 +1,1 @@
-# GENERADOR_DE_PEDRERIA_JMVN
+https://jesusvn1993mplvt3-ai.github.io/GENERADOR_DE_PEDRERIA_JMVN/
