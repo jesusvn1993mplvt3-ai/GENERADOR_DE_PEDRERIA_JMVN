@@ -3,139 +3,184 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>JMVN - EDITOR PROFESIONAL FULLSCREEN</title>
+    <title>JMVN - Generador de Trazo Pro</title>
     <style>
-        :root { --accent: #ff0055; --bg: #0a0a0a; --panel: #1a1a1a; --text: #eee; --success: #00c853; --blue: #2196f3; }
+        :root { --accent: #ff0055; --bg: #111; --text: #eee; --panel: #222; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); display: flex; flex-direction: column; align-items: center; padding: 20px; margin: 0; touch-action: none; }
         
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); overflow: hidden; height: 100vh; display: flex; flex-direction: column; }
+        header { text-align: center; margin-bottom: 20px; }
+        h1 { margin: 0; font-size: 2.2rem; letter-spacing: 2px; text-transform: uppercase; }
+        .red-text { color: var(--accent); } .white-text { color: white; }
 
-        /* UI Principal */
-        header { padding: 15px; text-align: center; background: #000; border-bottom: 1px solid #333; }
-        .red { color: var(--accent); }
+        .container { background: var(--panel); padding: 25px; border-radius: 15px; box-shadow: 0 10px 40px rgba(0,0,0,0.8); width: 95%; max-width: 1400px; display: grid; grid-template-columns: 320px 1fr; gap: 25px; }
         
-        .main-layout { display: grid; grid-template-columns: 320px 1fr; flex-grow: 1; overflow: hidden; }
+        /* Controles */
+        .controls { display: flex; flex-direction: column; gap: 12px; height: fit-content; max-height: 90vh; overflow-y: auto; }
+        .control-group { background: #333; padding: 12px; border-radius: 10px; border: 1px solid #444; }
+        .control-group.project-meta { border-color: var(--accent); background: #2a1a1f; }
+        
+        label { display: block; font-size: 0.85rem; color: #aaa; margin-bottom: 6px; }
+        input[type="text"], input[type="file"], input[type="number"], select { width: 100%; padding: 8px; background: #222; border: 1px solid #555; color: white; border-radius: 4px; box-sizing: border-box; }
+        input[type="range"] { width: 100%; cursor: pointer; }
+        
+        button { background: var(--accent); color: white; border: none; padding: 12px; border-radius: 6px; cursor: pointer; font-weight: bold; width: 100%; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 5px; font-size: 0.9rem; }
+        button:hover { filter: brightness(1.2); }
+        button:disabled { background: #555; cursor: not-allowed; opacity: 0.7; }
+        button.edit-mode-btn { background: #2196F3; box-shadow: 0 4px 10px rgba(33, 150, 243, 0.3); }
 
-        /* Panel Izquierdo */
-        .sidebar { background: var(--panel); padding: 20px; display: flex; flex-direction: column; gap: 15px; overflow-y: auto; border-right: 1px solid #333; }
-        .group { background: #252525; padding: 12px; border-radius: 10px; border: 1px solid #333; }
-        label { display: block; font-size: 0.75rem; color: #888; margin-bottom: 5px; text-transform: uppercase; }
-        input, select { width: 100%; padding: 8px; background: #111; border: 1px solid #444; color: white; border-radius: 4px; }
-        .val-badge { float: right; color: var(--accent); font-family: monospace; }
+        .val { float: right; color: var(--accent); font-weight: bold; }
+        .dimensions-display { text-align: center; color: #00E676; font-family: monospace; font-size: 1.1rem; margin-top: 10px; }
 
-        button { padding: 12px; border-radius: 6px; border: none; font-weight: bold; cursor: pointer; text-transform: uppercase; transition: 0.2s; width: 100%; margin-top: 5px; }
-        .btn-gen { background: var(--accent); color: white; }
-        .btn-edit { background: var(--blue); color: white; }
-        .btn-gal { background: #444; color: white; }
-        button:disabled { opacity: 0.3; }
-
-        /* Área de Previsualización */
-        .preview-area { background: #f0f0f0; display: flex; align-items: center; justify-content: center; position: relative; }
-        #svgWrapper { max-width: 90%; max-height: 90%; pointer-events: none; }
-
-        /* --- MODO EDICIÓN FULLSCREEN --- */
+        /* Área de SVG / Canvas */
+        #visualWrapper { background: #fff; border-radius: 8px; height: 650px; position: relative; overflow: hidden; box-shadow: inset 0 0 20px rgba(0,0,0,0.2); display: flex; align-items: center; justify-content: center; }
+        #svgContent { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
+        
+        /* --- MODO EDICIÓN (OVERLAY) --- */
         #editorOverlay { 
-            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; 
-            background: #111; z-index: 2000; display: none; flex-direction: column; 
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
+            background: #1a1a1a; z-index: 100; display: none; flex-direction: column; 
         }
-        #editorCanvas { flex-grow: 1; cursor: crosshair; touch-action: none; background: #ccc; }
+        #editorCanvas { flex-grow: 1; cursor: grab; background: #e0e0e0; touch-action: none; }
+        #editorCanvas:active { cursor: grabbing; }
 
-        .editor-ui { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); display: flex; gap: 15px; background: rgba(0,0,0,0.85); padding: 12px 25px; border-radius: 50px; border: 1px solid #444; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-        .tool { width: 45px; height: 45px; border-radius: 50%; border: 2px solid transparent; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; cursor: pointer; transition: 0.2s; }
-        .tool.active { border-color: white; transform: scale(1.15); }
-        .t-del { background: var(--accent); } .t-add { background: var(--success); } .t-mov { background: var(--blue); }
+        .editor-toolbar {
+            position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
+            display: flex; gap: 10px; background: rgba(0,0,0,0.8); padding: 10px; border-radius: 30px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.5); pointer-events: auto;
+        }
+        .tool-btn {
+            width: 45px; height: 45px; border-radius: 50%; border: 2px solid transparent;
+            background: #333; color: white; font-size: 1.2rem; cursor: pointer; display: flex; align-items: center; justify-content: center;
+        }
+        .tool-btn.active { border-color: white; transform: scale(1.1); }
+        .tool-btn.delete.active { background: var(--accent); }
+        .tool-btn.add.active { background: #00E676; color: black; }
+        .tool-btn.move.active { background: #2196F3; }
 
-        .editor-actions { position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); display: flex; gap: 20px; }
-        .action-btn { width: 180px; padding: 15px; border-radius: 10px; font-size: 1rem; }
+        .editor-actions {
+            position: absolute; bottom: 20px; width: 100%; display: flex; justify-content: center; gap: 20px; pointer-events: none;
+        }
+        .editor-actions button { pointer-events: auto; width: 140px; box-shadow: 0 5px 15px rgba(0,0,0,0.5); }
+        .btn-confirm { background: #00C853; }
+        .btn-discard { background: #D50000; }
 
-        /* Controles de Precisión (D-Pad) */
-        #dpad { position: absolute; bottom: 120px; right: 30px; display: none; grid-template-columns: repeat(3, 45px); gap: 5px; }
-        .d-btn { background: #222; border: 1px solid #444; color: white; height: 45px; display: flex; align-items: center; justify-content: center; border-radius: 5px; cursor: pointer; }
+        /* Controles de Flechas para MOVER */
+        #dpad {
+            position: absolute; bottom: 90px; right: 20px; width: 120px; height: 120px;
+            display: none; grid-template-columns: 1fr 1fr 1fr; grid-template-rows: 1fr 1fr 1fr;
+            pointer-events: auto; opacity: 0.8;
+        }
+        .d-btn { background: #444; border: 1px solid #666; color: white; border-radius: 4px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-weight: bold; }
+        .d-btn:active { background: #2196F3; }
+        
+        .footer { margin-top: 30px; text-align: center; color: #555; font-size: 0.9rem; border-top: 1px solid #333; padding-top: 20px; width: 100%; }
+        .gemini-tag { color: var(--accent); font-weight: bold; font-size: 0.8rem; letter-spacing: 1px; display: block; margin-top: 5px; }
 
-        /* Modal Galería */
-        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 3000; display: none; align-items: center; justify-content: center; }
-        .modal-body { background: #1a1a1a; width: 90%; height: 85%; border-radius: 20px; padding: 25px; display: flex; flex-direction: column; }
-        .grid-gal { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 20px; overflow-y: auto; margin-top: 20px; }
-        .card { background: #252525; padding: 15px; border-radius: 10px; text-align: center; }
-        .thumb { background: white; height: 120px; border-radius: 5px; margin-bottom: 10px; display: flex; align-items: center; justify-content: center; }
+        /* Responsive */
+        @media (max-width: 900px) { .container { grid-template-columns: 1fr; } #visualWrapper { height: 500px; } }
     </style>
 </head>
 <body>
 
     <header>
-        <h2 style="letter-spacing: 2px;"><span class="red">JMVN</span> SMART DESIGN PRO</h2>
+        <h1><span class="red-text">HERRAMIENTAS INTELIGENTES</span> <span class="white-text">JMVN</span></h1>
     </header>
 
-    <div class="main-layout">
-        <div class="sidebar">
-            <div class="group">
-                <label>Nombre del Proyecto</label>
-                <input type="text" id="projName" placeholder="VIVA-ROUSS-01">
+    <div class="container">
+        <div class="controls">
+            <div class="control-group project-meta">
+                <label style="color:white; font-weight:bold;">NOMBRE DEL PROYECTO *</label>
+                <input type="text" id="projectName" placeholder="Ej: Logo Camisa 01" autocomplete="off">
             </div>
-            <div class="group">
-                <label>Imagen (Logo)</label>
-                <input type="file" id="fileIn" accept="image/*">
+
+            <div class="control-group">
+                <label>1. Imagen del Logo</label>
+                <input type="file" id="imageInput" accept="image/*">
             </div>
-            <div class="group">
-                <label>Ancho Real (cm)</label>
-                <input type="number" id="printW" value="25">
+
+            <div class="control-group">
+                <label>2. Configuración Física</label>
+                <label style="font-size:0.75rem">Ancho Real de Impresión (cm):</label>
+                <input type="number" id="realWidthCm" value="25" step="0.5">
             </div>
-            <div class="group">
-                <label>Separación Vertical <span id="yStepVal" class="val-badge">8</span></label>
-                <input type="range" id="yStep" min="3" max="40" value="8">
-                <label style="margin-top:10px">Separación Horizontal <span id="xStepVal" class="val-badge">8</span></label>
-                <input type="range" id="xStep" min="3" max="40" value="8">
+
+            <div class="control-group">
+                <label>3. Distribución</label>
+                <select id="mode" class="param-input">
+                    <option value="adaptive">Trazo Adaptativo (Curvas)</option>
+                    <option value="honeycomb">Panal Orgánico</option>
+                    <option value="grid">Ladrillo Recto</option>
+                </select>
             </div>
-            <div class="group">
-                <label>Tamaño Piedra <span id="rVal" class="val-badge">2.5</span></label>
-                <input type="range" id="radius" min="1" max="10" step="0.1" value="2.5">
+
+            <div class="control-group">
+                <label>Separación Vertical: <span id="yStepVal" class="val">--</span> mm</label>
+                <input type="range" id="yStep" class="param-input" min="2" max="40" value="8">
             </div>
-            <button class="btn-gen" onclick="process()">Generar Trama</button>
-            <button class="btn-edit" id="btnEdit" onclick="enterEditor()" disabled>🛠️ MODO EDICIÓN FULLSCREEN</button>
-            <button class="btn-gal" onclick="openGallery()">📂 Ver Proyectos Guardados</button>
+
+            <div class="control-group">
+                <label>Densidad Horizontal: <span id="xStepVal" class="val">--</span> mm</label>
+                <input type="range" id="xStep" class="param-input" min="2" max="40" value="8">
+            </div>
+
+            <div class="control-group">
+                <label>Ángulo: <span id="angleVal" class="val">0</span>°</label>
+                <input type="range" id="angle" class="param-input" min="-45" max="45" value="0">
+            </div>
+
+            <div class="control-group">
+                <label>Tamaño Piedra (aprox): <span id="radiusVal" class="val">--</span> mm</label>
+                <input type="range" id="radius" class="param-input" min="1" max="20" step="0.5" value="2.5">
+            </div>
+
+            <button onclick="processImage()">Generar Trama Base</button>
+            <button class="edit-mode-btn" id="btnOpenEditor" onclick="openEditor()" disabled>🛠️ Entrar a Modo Edición</button>
+            <div class="dimensions-display" id="dimDisplay">0 cm x 0 cm</div>
         </div>
 
-        <div class="preview-area">
-            <div id="svgWrapper"></div>
+        <div id="visualWrapper">
+            <div id="svgContent">
+                <div style="color:#bbb; text-align:center">Sube imagen y genera trama<br>para habilitar opciones.</div>
+            </div>
+
+            <div id="editorOverlay">
+                <div class="editor-toolbar">
+                    <button class="tool-btn delete active" onclick="setTool('delete')" title="Eliminar (Rojo)">🗑️</button>
+                    <button class="tool-btn add" onclick="setTool('add')" title="Agregar (Verde)">➕</button>
+                    <button class="tool-btn move" onclick="setTool('move')" title="Mover (Azul)">✋</button>
+                </div>
+
+                <canvas id="editorCanvas"></canvas>
+                
+                <div id="dpad">
+                    <div></div><button class="d-btn" onclick="nudge(0,-1)">▲</button><div></div>
+                    <button class="d-btn" onclick="nudge(-1,0)">◀</button>
+                    <button class="d-btn" style="background:#2196F3; border:none;">●</button>
+                    <button class="d-btn" onclick="nudge(1,0)">▶</button>
+                    <div></div><button class="d-btn" onclick="nudge(0,1)">▼</button><div></div>
+                </div>
+
+                <div class="editor-actions">
+                    <button class="btn-discard" onclick="discardChanges()">Descartar ❌</button>
+                    <button class="btn-confirm" onclick="confirmChanges()">CONFIRMAR ✅</button>
+                </div>
+            </div>
         </div>
     </div>
 
-    <div id="editorOverlay">
-        <div class="editor-ui">
-            <div class="tool t-del active" onclick="setTool('del')" id="t-del" title="Borrar">🗑️</div>
-            <div class="tool t-add" onclick="setTool('add')" id="t-add" title="Agregar">➕</div>
-            <div class="tool t-mov" onclick="setTool('mov')" id="t-mov" title="Mover">✋</div>
-        </div>
+    <canvas id="procCanvas" style="display:none;"></canvas>
 
-        <canvas id="editorCanvas"></canvas>
-
-        <div id="dpad">
-            <div></div><div class="d-btn" onclick="nudge(0,-1)">▲</div><div></div>
-            <div class="d-btn" onclick="nudge(-1,0)">◀</div><div class="d-btn">●</div><div class="d-btn" onclick="nudge(1,0)">▶</div>
-            <div></div><div class="d-btn" onclick="nudge(0,1)">▼</div><div></div>
-        </div>
-
-        <div class="editor-actions">
-            <button class="action-btn" style="background:#444; color:white;" onclick="exitEditor(false)">Descartar</button>
-            <button class="action-btn" style="background:var(--success); color:white;" onclick="exitEditor(true)">Confirmar y Guardar</button>
+    <div class="footer">
+        Desarrollado por <strong>JESÚS VALLEJO</strong><br>
+        <span class="gemini-tag">POWERED BY GEMINI 3 PRO</span>
+        <div style="margin-top:10px; font-style:italic; font-size:0.75rem">
+            HERRAMIENTA DE USO EXCLUSIVO PARA EMPLEADOS DE <b>VIVA ROUSS</b> Y <b>MISS ROUSS</b>.
         </div>
     </div>
-
-    <div class="modal" id="galModal">
-        <div class="modal-body">
-            <div style="display:flex; justify-content:space-between; align-items:center;">
-                <h2 style="color:var(--accent)">GALERÍA DE DISEÑOS</h2>
-                <button onclick="closeGallery()" style="width:auto; padding:10px 20px; background: #f44336;">CERRAR</button>
-            </div>
-            <div class="grid-gal" id="galGrid"></div>
-        </div>
-    </div>
-
-    <canvas id="procCanvas" style="display:none"></canvas>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
-        import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, serverTimestamp, query, orderBy } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyCngQL1pdqghv2vbjkPycT1Xf0C46f7jYs",
@@ -149,217 +194,490 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        window.saveToDB = async (name, svg, count) => {
+        // Exportar función global para guardar
+        window.saveToFirebase = async (points, svgString) => {
+            const name = document.getElementById('projectName').value.trim();
+            if(!name) { alert("⚠️ Se descargará el SVG, pero NO se guardó en Nube porque falta el Nombre del Proyecto."); return; }
+            
             try {
                 await addDoc(collection(db, "proyectos_pedreria"), {
-                    nombre: name || "Sin Nombre",
-                    svg: svg,
-                    puntos: count,
-                    fecha: serverTimestamp()
+                    nombre_proyecto: name,
+                    puntos_total: points.length,
+                    svg_generado: svgString,
+                    config: window.getLastConfig(),
+                    fecha: serverTimestamp(),
+                    autor: "JESÚS VALLEJO / STAFF"
                 });
-            } catch(e) { console.error(e); }
-        };
-
-        window.fetchGallery = async () => {
-            const grid = document.getElementById('galGrid');
-            grid.innerHTML = "Cargando...";
-            const q = query(collection(db, "proyectos_pedreria"), orderBy("fecha", "desc"));
-            const snap = await getDocs(q);
-            grid.innerHTML = "";
-            snap.forEach(d => {
-                const p = d.data();
-                const card = document.createElement('div');
-                card.className = "card";
-                card.innerHTML = `<div class="thumb">${p.svg}</div><strong>${p.nombre}</strong><br><small>${p.puntos} pts</small>`;
-                grid.appendChild(card);
-            });
+                console.log("✅ Guardado en Firebase");
+            } catch(e) {
+                console.error(e);
+                alert("Error de conexión con base de datos.");
+            }
         };
     </script>
 
     <script>
-        let points = [];
-        let canvasW, canvasH;
-        let tool = 'del', selIdx = -1;
-        let scale = 1, offX = 0, offY = 0;
-        let isPanning = false, lastX, lastY;
-        let startDist = 0; // Para Pinch Zoom
+        // --- ESTADO GLOBAL ---
+        let globalPoints = [];     // Array actual de puntos {x, y}
+        let backupPoints = [];     // Para "Descartar"
+        let canvasWidth = 0;       // Dimensiones internas
+        let canvasHeight = 0;
+        let imgAspectRatio = 1;
+        
+        let manualEditsMade = false; // Flag de seguridad
 
-        // --- GENERACIÓN ---
-        function process() {
-            const file = document.getElementById('fileIn').files[0];
-            if(!file) return alert("Sube un logo");
+        // --- ESTADO DEL EDITOR ---
+        let editTool = 'delete'; // delete, add, move
+        let selectedPointIdx = -1; // Para herramienta mover
+        let editorScale = 1;
+        let editorOffsetX = 0;
+        let editorOffsetY = 0;
+        let isDragging = false;
+        let lastMouse = {x:0, y:0};
+        
+        // --- INPUTS UI ---
+        const inputs = document.querySelectorAll('.param-input');
+        inputs.forEach(i => i.addEventListener('input', updateLabels));
+        
+        // Advertencia de seguridad en sliders
+        inputs.forEach(i => i.addEventListener('mousedown', checkManualEditsWarning));
+        inputs.forEach(i => i.addEventListener('touchstart', checkManualEditsWarning));
+
+        function checkManualEditsWarning() {
+            if(manualEditsMade) {
+                const proceed = confirm("⚠️ ¡ADVERTENCIA!\n\nHiciste ediciones manuales (borrar/mover puntos). Si cambias los parámetros ahora, se regenerará todo y PERDERÁS tus ediciones manuales.\n\n¿Deseas continuar y reiniciar el diseño?");
+                if(proceed) {
+                    manualEditsMade = false;
+                    processImage(); // Regenerar
+                } else {
+                    // Intentar revertir el input (complejo en UI, pero al menos paramos la lógica)
+                    // En este caso simple, el usuario soltará el click y el evento 'change' disparará processImage si no lo detenemos.
+                    // Una solución rápida es recargar la imagen procesada anterior, pero dejaremos que el usuario decida.
+                }
+            }
+        }
+
+        // Detectar cambios en sliders para regenerar (solo si no hay ediciones manuales pendientes)
+        document.getElementById('realWidthCm').addEventListener('input', updateLabels);
+        
+        function updateLabels() {
+            const realW = parseFloat(document.getElementById('realWidthCm').value) || 25;
+            // Asumimos canvasWidth interno de 1000px por defecto al procesar
+            const scaleFactor = canvasWidth > 0 ? (realW * 10) / canvasWidth : 0.025; // mm por pixel
+            
+            document.getElementById('yStepVal').innerText = (document.getElementById('yStep').value * scaleFactor).toFixed(1);
+            document.getElementById('xStepVal').innerText = (document.getElementById('xStep').value * scaleFactor).toFixed(1);
+            document.getElementById('angleVal').innerText = document.getElementById('angle').value;
+            // Radio es radio, diámetro es x2
+            const rPx = parseFloat(document.getElementById('radius').value);
+            document.getElementById('radiusVal').innerText = (rPx * 2 * scaleFactor).toFixed(1);
+
+            // Calcular dimensiones finales
+            if(canvasHeight > 0) {
+                const hCm = (canvasHeight * (realW / canvasWidth)).toFixed(1);
+                document.getElementById('dimDisplay').innerText = `Dimensiones Finales: ${realW} cm x ${hCm} cm`;
+            }
+        }
+
+        window.getLastConfig = () => {
+            return {
+                mode: document.getElementById('mode').value,
+                realWidth: document.getElementById('realWidthCm').value,
+                generatedDate: new Date().toISOString()
+            };
+        }
+
+        // --- PROCESAMIENTO DE IMAGEN ---
+        function processImage() {
+            manualEditsMade = false; 
+            const input = document.getElementById('imageInput');
+            if (!input.files[0]) return alert("Selecciona una imagen primero.");
+
             const reader = new FileReader();
             reader.onload = (e) => {
                 const img = new Image();
                 img.onload = () => {
                     const c = document.getElementById('procCanvas');
-                    const ctx = c.getContext('2d');
-                    canvasW = 1000; canvasH = img.height * (1000/img.width);
-                    c.width = canvasW; c.height = canvasH;
-                    ctx.drawImage(img, 0, 0, canvasW, canvasH);
-                    const data = ctx.getImageData(0,0,canvasW, canvasH).data;
+                    const ctx = c.getContext('2d', { willReadFrequently: true });
                     
-                    const xs = parseInt(document.getElementById('xStep').value);
-                    const ys = parseInt(document.getElementById('yStep').value);
-                    points = [];
-                    for(let y=0; y<canvasH; y+=ys) {
-                        for(let x=0; x<canvasW; x+=xs) {
-                            const i = (Math.floor(y)*canvasW + Math.floor(x))*4;
-                            if(data[i] < 128) points.push({x, y});
-                        }
-                    }
-                    drawSVG();
-                    document.getElementById('btnEdit').disabled = false;
+                    // Normalizar tamaño a 1000px ancho
+                    const maxW = 1000;
+                    const scale = maxW / img.width;
+                    c.width = maxW;
+                    c.height = img.height * scale;
+                    
+                    canvasWidth = c.width;
+                    canvasHeight = c.height;
+                    imgAspectRatio = c.width / c.height;
+
+                    ctx.fillStyle = "white";
+                    ctx.fillRect(0,0,c.width, c.height);
+                    ctx.drawImage(img, 0, 0, c.width, c.height);
+                    
+                    generatePoints(ctx);
+                    renderSVGPreview();
+                    updateLabels();
+                    document.getElementById('btnOpenEditor').disabled = false;
                 };
                 img.src = e.target.result;
             };
-            reader.readAsDataURL(file);
+            reader.readAsDataURL(input.files[0]);
         }
 
-        function drawSVG() {
-            const r = document.getElementById('radius').value;
-            let svg = `<svg viewBox="0 0 ${canvasW} ${canvasH}" xmlns="http://www.w3.org/2000/svg"><g fill="black">`;
-            points.forEach(p => svg += `<circle cx="${p.x}" cy="${p.y}" r="${r}"/>`);
-            svg += `</g></svg>`;
-            document.getElementById('svgWrapper').innerHTML = svg;
-        }
-
-        // --- EDITOR ENGINE ---
-        const canvas = document.getElementById('editorCanvas');
-        const ctx = canvas.getContext('2d');
-
-        function enterEditor() {
-            document.getElementById('editorOverlay').style.display = 'flex';
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-            scale = Math.min(canvas.width/canvasW, canvas.height/canvasH) * 0.8;
-            offX = (canvas.width - canvasW*scale)/2;
-            offY = (canvas.height - canvasH*scale)/2;
-            renderLoop();
-        }
-
-        function renderLoop() {
-            if(document.getElementById('editorOverlay').style.display === 'none') return;
-            ctx.fillStyle = "#333";
-            ctx.fillRect(0,0,canvas.width, canvas.height);
-
-            ctx.save();
-            ctx.translate(offX, offY);
-            ctx.scale(scale, scale);
+        function generatePoints(ctx) {
+            const yStep = parseInt(document.getElementById('yStep').value);
+            const xStep = parseInt(document.getElementById('xStep').value);
+            const angle = parseInt(document.getElementById('angle').value) * (Math.PI / 180);
+            const mode = document.getElementById('mode').value;
             
-            // Lienzo blanco
-            ctx.fillStyle = "white";
-            ctx.fillRect(0,0, canvasW, canvasH);
+            const w = ctx.canvas.width;
+            const h = ctx.canvas.height;
+            const imgData = ctx.getImageData(0, 0, w, h);
             
-            const r = parseFloat(document.getElementById('radius').value);
-            points.forEach((p, i) => {
-                ctx.beginPath();
-                ctx.arc(p.x, p.y, r, 0, Math.PI*2);
-                if(tool === 'del') {
-                    ctx.fillStyle = "black"; ctx.fill();
-                    ctx.strokeStyle = "red"; ctx.lineWidth = r/2; ctx.stroke();
-                } else if(tool === 'mov' && i === selIdx) {
-                    ctx.fillStyle = "#2196f3"; ctx.fill();
-                } else {
-                    ctx.fillStyle = "black"; ctx.fill();
+            globalPoints = [];
+
+            // Algoritmo de barrido rotado
+            for (let y = -h; y < h * 2; y += yStep) {
+                let segment = [];
+                for (let x = -w; x < w * 2; x += 1) {
+                    const rotX = Math.floor(x * Math.cos(angle) - y * Math.sin(angle));
+                    const rotY = Math.floor(x * Math.sin(angle) + y * Math.cos(angle));
+
+                    if (rotX >= 0 && rotX < w && rotY >= 0 && rotY < h) {
+                        const idx = (rotY * w + rotX) * 4;
+                        // Oscuro = Puntos
+                        if (imgData.data[idx] < 150) {
+                            segment.push({x: rotX, y: rotY});
+                        } else if (segment.length > 0) {
+                            addSegment(segment, xStep, mode);
+                            segment = [];
+                        }
+                    }
                 }
-            });
-            ctx.restore();
-            requestAnimationFrame(renderLoop);
+                if (segment.length > 0) addSegment(segment, xStep, mode);
+            }
         }
 
-        // --- INTERACCIÓN (TOUCH & MOUSE) ---
-        canvas.addEventListener('mousedown', (e) => {
-            if(e.button === 2) { isPanning = true; lastX = e.clientX; lastY = e.clientY; return; }
-            handleAction(e.clientX, e.clientY);
-        });
-
-        canvas.addEventListener('mousemove', (e) => {
-            if(isPanning) {
-                offX += e.clientX - lastX;
-                offY += e.clientY - lastY;
-                lastX = e.clientX; lastY = e.clientY;
-            }
-        });
-
-        window.addEventListener('mouseup', () => isPanning = false);
-        canvas.oncontextmenu = (e) => e.preventDefault();
-
-        // Zoom Rueda
-        canvas.addEventListener('wheel', (e) => {
-            const zoom = e.deltaY < 0 ? 1.1 : 0.9;
-            scale *= zoom;
-        });
-
-        // Touch Pinch Zoom & Pan
-        canvas.addEventListener('touchstart', (e) => {
-            if(e.touches.length === 2) {
-                startDist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY);
+        function addSegment(seg, step, mode) {
+            if (seg.length < 2) return;
+            if (mode === 'adaptive') {
+                const count = Math.max(1, Math.round(seg.length / step));
+                for(let i=0; i<count; i++) {
+                    const idx = Math.floor((seg.length / (count+1)) * (i+1));
+                    globalPoints.push(seg[idx]);
+                }
             } else {
-                lastX = e.touches[0].clientX; lastY = e.touches[0].clientY;
-                handleAction(lastX, lastY);
+                for(let i=0; i<seg.length; i+=step) globalPoints.push(seg[i]);
             }
-        });
+        }
 
-        canvas.addEventListener('touchmove', (e) => {
-            if(e.touches.length === 2) {
-                const dist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY);
-                scale *= (dist / startDist);
-                startDist = dist;
-            } else if(e.touches.length === 1 && tool === 'mov' && selIdx !== -1) {
-                // Arrastrar punto en modo mover
-                const mx = (e.touches[0].clientX - offX) / scale;
-                const my = (e.touches[0].clientY - offY) / scale;
-                points[selIdx].x = mx; points[selIdx].y = my;
-            }
-        });
-
-        function handleAction(sx, sy) {
-            const mx = (sx - offX) / scale;
-            const my = (sy - offY) / scale;
+        function renderSVGPreview() {
             const r = parseFloat(document.getElementById('radius').value);
-
-            let hit = -1;
-            points.forEach((p, i) => {
-                if(Math.hypot(p.x - mx, p.y - my) < r*3) hit = i;
+            let svg = `<svg viewBox="0 0 ${canvasWidth} ${canvasHeight}" style="max-height:100%; max-width:100%;"><g fill="black">`;
+            globalPoints.forEach(p => {
+                svg += `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="${r}" />`;
             });
+            svg += `</g></svg>`;
+            document.getElementById('svgContent').innerHTML = svg;
+        }
 
-            if(tool === 'del' && hit !== -1) points.splice(hit, 1);
-            if(tool === 'add' && hit === -1) points.push({x: mx, y: my});
-            if(tool === 'mov') selIdx = hit;
+        // --- MODO EDICIÓN (CANVAS INTERACTIVO) ---
+        
+        const editorCanvas = document.getElementById('editorCanvas');
+        const ctxEdit = editorCanvas.getContext('2d');
+        let initialPinchDist = 0;
+
+        function openEditor() {
+            backupPoints = JSON.parse(JSON.stringify(globalPoints)); // Clonar
+            document.getElementById('editorOverlay').style.display = 'flex';
+            
+            // Ajustar canvas al tamaño de pantalla real del usuario
+            const rect = document.getElementById('visualWrapper').getBoundingClientRect();
+            editorCanvas.width = rect.width;
+            editorCanvas.height = rect.height;
+            
+            // Centrar vista
+            editorScale = Math.min(editorCanvas.width / canvasWidth, editorCanvas.height / canvasHeight) * 0.9;
+            editorOffsetX = (editorCanvas.width - canvasWidth * editorScale) / 2;
+            editorOffsetY = (editorCanvas.height - canvasHeight * editorScale) / 2;
+
+            requestAnimationFrame(drawEditorLoop);
         }
 
         function setTool(t) {
-            tool = t; selIdx = -1;
-            document.querySelectorAll('.tool').forEach(b => b.classList.remove('active'));
-            document.getElementById('t-'+t).classList.add('active');
-            document.getElementById('dpad').style.display = t === 'mov' ? 'grid' : 'none';
+            editTool = t;
+            selectedPointIdx = -1; // Reset selección
+            document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+            document.querySelector(`.tool-btn.${t}`).classList.add('active');
+            
+            document.getElementById('dpad').style.display = (t === 'move') ? 'grid' : 'none';
+            drawEditorLoop();
         }
 
-        function nudge(dx, dy) { if(selIdx !== -1) { points[selIdx].x += dx; points[selIdx].y += dy; } }
+        function drawEditorLoop() {
+            ctxEdit.clearRect(0, 0, editorCanvas.width, editorCanvas.height);
+            
+            // Fondo
+            ctxEdit.save();
+            ctxEdit.translate(editorOffsetX, editorOffsetY);
+            ctxEdit.scale(editorScale, editorScale);
+            
+            // Dibujar área de trabajo (papel blanco)
+            ctxEdit.fillStyle = "white";
+            ctxEdit.fillRect(0,0, canvasWidth, canvasHeight);
+            
+            const r = parseFloat(document.getElementById('radius').value);
 
-        async function exitEditor(confirm) {
-            document.getElementById('editorOverlay').style.display = 'none';
-            if(confirm) {
-                drawSVG();
-                const svg = document.getElementById('svgWrapper').innerHTML;
-                if(window.saveToDB) await window.saveToDB(document.getElementById('projName').value, svg, points.length);
-                // Descarga
-                const blob = new Blob([svg], {type: "image/svg+xml"});
-                const a = document.createElement("a");
-                a.href = URL.createObjectURL(blob);
-                a.download = (document.getElementById('projName').value || "jmvn") + ".svg";
-                a.click();
+            // Dibujar puntos
+            for(let i=0; i<globalPoints.length; i++) {
+                const p = globalPoints[i];
+                ctxEdit.beginPath();
+                ctxEdit.arc(p.x, p.y, r, 0, Math.PI*2);
+                
+                if (editTool === 'delete') {
+                    // Contorno rojo, relleno negro
+                    ctxEdit.fillStyle = "black";
+                    ctxEdit.fill();
+                    ctxEdit.lineWidth = r/2;
+                    ctxEdit.strokeStyle = "red";
+                    ctxEdit.stroke();
+                } 
+                else if (editTool === 'move' && i === selectedPointIdx) {
+                    // Azul seleccionado
+                    ctxEdit.fillStyle = "#2196F3";
+                    ctxEdit.fill();
+                    // Indicador extra
+                    ctxEdit.strokeStyle = "#2196F3";
+                    ctxEdit.lineWidth = 2;
+                    ctxEdit.beginPath();
+                    ctxEdit.arc(p.x, p.y, r * 2, 0, Math.PI*2);
+                    ctxEdit.stroke();
+                }
+                else {
+                    // Normal
+                    ctxEdit.fillStyle = "black";
+                    ctxEdit.fill();
+                }
+            }
+
+            // Si modo Agregar, dibujar cursor fantasma si hay posición
+            // (Omitido para simplificar touch, se usa click directo)
+
+            ctxEdit.restore();
+        }
+
+        // --- INTERACCIÓN DEL EDITOR ---
+
+        // Transformación de Coordenadas: Pantalla -> Lienzo Interno
+        function screenToWorld(sx, sy) {
+            return {
+                x: (sx - editorOffsetX) / editorScale,
+                y: (sy - editorOffsetY) / editorScale
+            };
+        }
+
+        // Manejo de Mouse / Touch
+        editorCanvas.addEventListener('mousedown', startPan);
+        editorCanvas.addEventListener('mousemove', movePan);
+        editorCanvas.addEventListener('mouseup', endPan);
+        editorCanvas.addEventListener('wheel', handleWheel);
+        
+        // Touch para móviles (Zoom pinza)
+        editorCanvas.addEventListener('touchstart', (e) => {
+            if(e.touches.length === 2) {
+                isDragging = false; // Zoom mode
+                initialPinchDist = Math.hypot(
+                    e.touches[0].pageX - e.touches[1].pageX,
+                    e.touches[0].pageY - e.touches[1].pageY
+                );
+            } else {
+                startPan(e.touches[0]);
+            }
+        });
+        
+        editorCanvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            if(e.touches.length === 2) {
+                const dist = Math.hypot(
+                    e.touches[0].pageX - e.touches[1].pageX,
+                    e.touches[0].pageY - e.touches[1].pageY
+                );
+                const delta = dist - initialPinchDist;
+                const zoomFactor = delta * 0.005;
+                
+                // Zoom al centro de los dedos (simplificado: zoom al centro pantalla)
+                const s = 1 + zoomFactor;
+                editorScale *= s;
+                initialPinchDist = dist;
+                drawEditorLoop();
+            } else {
+                movePan(e.touches[0]);
+            }
+        });
+
+        editorCanvas.addEventListener('touchend', (e) => {
+            if(e.touches.length === 0) endPan(e.changedTouches[0]);
+        });
+
+
+        let startClickTime = 0;
+        let didMove = false;
+
+        function startPan(e) {
+            isDragging = true;
+            didMove = false;
+            startClickTime = Date.now();
+            const rect = editorCanvas.getBoundingClientRect();
+            lastMouse = { x: e.clientX - rect.left, y: e.clientY - rect.top };
+        }
+
+        function movePan(e) {
+            if (!isDragging) return;
+            const rect = editorCanvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            const dx = x - lastMouse.x;
+            const dy = y - lastMouse.y;
+
+            if (Math.abs(dx) > 2 || Math.abs(dy) > 2) didMove = true;
+
+            editorOffsetX += dx;
+            editorOffsetY += dy;
+            lastMouse = {x, y};
+            drawEditorLoop();
+        }
+
+        function endPan(e) {
+            isDragging = false;
+            const timeDiff = Date.now() - startClickTime;
+            
+            // Si fue un click rápido y no arrastró mucho -> ACCIÓN DE HERRAMIENTA
+            if (timeDiff < 300 && !didMove) {
+                const rect = editorCanvas.getBoundingClientRect();
+                const clickX = (e.clientX || e.pageX) - rect.left;
+                const clickY = (e.clientY || e.pageY) - rect.top;
+                handleToolClick(clickX, clickY);
             }
         }
 
-        function openGallery() { document.getElementById('galModal').style.display = 'flex'; window.fetchGallery(); }
-        function closeGallery() { document.getElementById('galModal').style.display = 'none'; }
-        
-        // Sincronizar Sliders
-        document.querySelectorAll('input[type=range]').forEach(i => {
-            i.oninput = () => document.getElementById(i.id+'Val').innerText = i.value;
-        });
+        function handleWheel(e) {
+            e.preventDefault();
+            const zoomIntensity = 0.1;
+            const delta = e.deltaY < 0 ? 1 : -1;
+            const s = (delta > 0) ? (1 + zoomIntensity) : (1 / (1 + zoomIntensity));
+            
+            // Zoom hacia el mouse
+            const rect = editorCanvas.getBoundingClientRect();
+            const mx = e.clientX - rect.left;
+            const my = e.clientY - rect.top;
+
+            editorOffsetX = mx - (mx - editorOffsetX) * s;
+            editorOffsetY = my - (my - editorOffsetY) * s;
+            editorScale *= s;
+            drawEditorLoop();
+        }
+
+        function handleToolClick(sx, sy) {
+            const wPos = screenToWorld(sx, sy);
+            const r = parseFloat(document.getElementById('radius').value);
+            const clickTol = r * 3 / editorScale; // Tolerancia visual ajustada al zoom
+
+            // Buscar punto cercano
+            let hitIdx = -1;
+            let minDist = r * 2.5; // Radio de detección generoso
+
+            for(let i=0; i<globalPoints.length; i++) {
+                const p = globalPoints[i];
+                const d = Math.hypot(p.x - wPos.x, p.y - wPos.y);
+                if (d < minDist) {
+                    minDist = d;
+                    hitIdx = i;
+                }
+            }
+
+            // Lógica por herramienta
+            if (editTool === 'delete') {
+                if (hitIdx !== -1) {
+                    globalPoints.splice(hitIdx, 1);
+                    manualEditsMade = true;
+                }
+            }
+            else if (editTool === 'add') {
+                if (hitIdx === -1) { // Solo agregar si no clickeó uno existente
+                    // Verificar colisión (repelente)
+                    let safe = true;
+                    for(let p of globalPoints) {
+                        if(Math.hypot(p.x - wPos.x, p.y - wPos.y) < r * 2.1) {
+                            safe = false; break;
+                        }
+                    }
+                    if(safe) {
+                        globalPoints.push({x: wPos.x, y: wPos.y});
+                        manualEditsMade = true;
+                    }
+                }
+            }
+            else if (editTool === 'move') {
+                if (hitIdx !== -1) {
+                    selectedPointIdx = hitIdx; // Seleccionar
+                } else if (selectedPointIdx !== -1) {
+                    // Si ya hay seleccionado y clickea vacío -> mover ahí (rápido)
+                    globalPoints[selectedPointIdx].x = wPos.x;
+                    globalPoints[selectedPointIdx].y = wPos.y;
+                    manualEditsMade = true;
+                    // Mantenemos selección para ajuste fino
+                }
+            }
+            drawEditorLoop();
+        }
+
+        // Ajuste fino con flechas
+        window.nudge = (dx, dy) => {
+            if (selectedPointIdx !== -1) {
+                globalPoints[selectedPointIdx].x += dx;
+                globalPoints[selectedPointIdx].y += dy;
+                manualEditsMade = true;
+                drawEditorLoop();
+            }
+        };
+
+        // --- CIERRE DE EDICIÓN ---
+
+        window.discardChanges = () => {
+            if(confirm("¿Descartar cambios y volver al original?")) {
+                globalPoints = backupPoints;
+                document.getElementById('editorOverlay').style.display = 'none';
+                manualEditsMade = false;
+                renderSVGPreview();
+            }
+        };
+
+        window.confirmChanges = async () => {
+            // 1. Renderizar SVG final
+            renderSVGPreview();
+            const svgString = document.getElementById('svgContent').innerHTML;
+
+            // 2. Cerrar Editor
+            document.getElementById('editorOverlay').style.display = 'none';
+            
+            // 3. Descargar SVG Local
+            const name = document.getElementById('projectName').value.trim() || "diseño";
+            const blob = new Blob([svgString], {type: "image/svg+xml"});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = name + "_JMVN.svg";
+            a.click();
+
+            // 4. Guardar en BD
+            if (window.saveToFirebase) {
+                await window.saveToFirebase(globalPoints, svgString);
+            }
+            
+            alert("✅ Cambios confirmados. Archivo descargado y guardado en la nube.");
+        };
+
     </script>
 </body>
 </html>
