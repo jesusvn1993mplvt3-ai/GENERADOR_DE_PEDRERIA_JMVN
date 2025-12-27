@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>JMVN - EDITOR PROFESIONAL FULLSCREEN</title>
+    <style>
+        :root { --accent: #ff0055; --bg: #0a0a0a; --panel: #1a1a1a; --text: #eee; --success: #00c853; --blue: #2196f3; }
+        
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); overflow: hidden; height: 100vh; display: flex; flex-direction: column; }
+
+        /* UI Principal */
+        header { padding: 15px; text-align: center; background: #000; border-bottom: 1px solid #333; }
+        .red { color: var(--accent); }
+        
+        .main-layout { display: grid; grid-template-columns: 320px 1fr; flex-grow: 1; overflow: hidden; }
+
+        /* Panel Izquierdo */
+        .sidebar { background: var(--panel); padding: 20px; display: flex; flex-direction: column; gap: 15px; overflow-y: auto; border-right: 1px solid #333; }
+        .group { background: #252525; padding: 12px; border-radius: 10px; border: 1px solid #333; }
+        label { display: block; font-size: 0.75rem; color: #888; margin-bottom: 5px; text-transform: uppercase; }
+        input, select { width: 100%; padding: 8px; background: #111; border: 1px solid #444; color: white; border-radius: 4px; }
+        .val-badge { float: right; color: var(--accent); font-family: monospace; }
+
+        button { padding: 12px; border-radius: 6px; border: none; font-weight: bold; cursor: pointer; text-transform: uppercase; transition: 0.2s; width: 100%; margin-top: 5px; }
+        .btn-gen { background: var(--accent); color: white; }
+        .btn-edit { background: var(--blue); color: white; }
+        .btn-gal { background: #444; color: white; }
+        button:disabled { opacity: 0.3; }
+
+        /* Área de Previsualización */
+        .preview-area { background: #f0f0f0; display: flex; align-items: center; justify-content: center; position: relative; }
+        #svgWrapper { max-width: 90%; max-height: 90%; pointer-events: none; }
+
+        /* --- MODO EDICIÓN FULLSCREEN --- */
+        #editorOverlay { 
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; 
+            background: #111; z-index: 2000; display: none; flex-direction: column; 
+        }
+        #editorCanvas { flex-grow: 1; cursor: crosshair; touch-action: none; background: #ccc; }
+
+        .editor-ui { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); display: flex; gap: 15px; background: rgba(0,0,0,0.85); padding: 12px 25px; border-radius: 50px; border: 1px solid #444; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .tool { width: 45px; height: 45px; border-radius: 50%; border: 2px solid transparent; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; cursor: pointer; transition: 0.2s; }
+        .tool.active { border-color: white; transform: scale(1.15); }
+        .t-del { background: var(--accent); } .t-add { background: var(--success); } .t-mov { background: var(--blue); }
+
+        .editor-actions { position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); display: flex; gap: 20px; }
+        .action-btn { width: 180px; padding: 15px; border-radius: 10px; font-size: 1rem; }
+
+        /* Controles de Precisión (D-Pad) */
+        #dpad { position: absolute; bottom: 120px; right: 30px; display: none; grid-template-columns: repeat(3, 45px); gap: 5px; }
+        .d-btn { background: #222; border: 1px solid #444; color: white; height: 45px; display: flex; align-items: center; justify-content: center; border-radius: 5px; cursor: pointer; }
+
+        /* Modal Galería */
+        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 3000; display: none; align-items: center; justify-content: center; }
+        .modal-body { background: #1a1a1a; width: 90%; height: 85%; border-radius: 20px; padding: 25px; display: flex; flex-direction: column; }
+        .grid-gal { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 20px; overflow-y: auto; margin-top: 20px; }
+        .card { background: #252525; padding: 15px; border-radius: 10px; text-align: center; }
+        .thumb { background: white; height: 120px; border-radius: 5px; margin-bottom: 10px; display: flex; align-items: center; justify-content: center; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h2 style="letter-spacing: 2px;"><span class="red">JMVN</span> SMART DESIGN PRO</h2>
+    </header>
+
+    <div class="main-layout">
+        <div class="sidebar">
+            <div class="group">
+                <label>Nombre del Proyecto</label>
+                <input type="text" id="projName" placeholder="VIVA-ROUSS-01">
+            </div>
+            <div class="group">
+                <label>Imagen (Logo)</label>
+                <input type="file" id="fileIn" accept="image/*">
+            </div>
+            <div class="group">
+                <label>Ancho Real (cm)</label>
+                <input type="number" id="printW" value="25">
+            </div>
+            <div class="group">
+                <label>Separación Vertical <span id="yStepVal" class="val-badge">8</span></label>
+                <input type="range" id="yStep" min="3" max="40" value="8">
+                <label style="margin-top:10px">Separación Horizontal <span id="xStepVal" class="val-badge">8</span></label>
+                <input type="range" id="xStep" min="3" max="40" value="8">
+            </div>
+            <div class="group">
+                <label>Tamaño Piedra <span id="rVal" class="val-badge">2.5</span></label>
+                <input type="range" id="radius" min="1" max="10" step="0.1" value="2.5">
+            </div>
+            <button class="btn-gen" onclick="process()">Generar Trama</button>
+            <button class="btn-edit" id="btnEdit" onclick="enterEditor()" disabled>🛠️ MODO EDICIÓN FULLSCREEN</button>
+            <button class="btn-gal" onclick="openGallery()">📂 Ver Proyectos Guardados</button>
+        </div>
+
+        <div class="preview-area">
+            <div id="svgWrapper"></div>
+        </div>
+    </div>
+
+    <div id="editorOverlay">
+        <div class="editor-ui">
+            <div class="tool t-del active" onclick="setTool('del')" id="t-del" title="Borrar">🗑️</div>
+            <div class="tool t-add" onclick="setTool('add')" id="t-add" title="Agregar">➕</div>
+            <div class="tool t-mov" onclick="setTool('mov')" id="t-mov" title="Mover">✋</div>
+        </div>
+
+        <canvas id="editorCanvas"></canvas>
+
+        <div id="dpad">
+            <div></div><div class="d-btn" onclick="nudge(0,-1)">▲</div><div></div>
+            <div class="d-btn" onclick="nudge(-1,0)">◀</div><div class="d-btn">●</div><div class="d-btn" onclick="nudge(1,0)">▶</div>
+            <div></div><div class="d-btn" onclick="nudge(0,1)">▼</div><div></div>
+        </div>
+
+        <div class="editor-actions">
+            <button class="action-btn" style="background:#444; color:white;" onclick="exitEditor(false)">Descartar</button>
+            <button class="action-btn" style="background:var(--success); color:white;" onclick="exitEditor(true)">Confirmar y Guardar</button>
+        </div>
+    </div>
+
+    <div class="modal" id="galModal">
+        <div class="modal-body">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <h2 style="color:var(--accent)">GALERÍA DE DISEÑOS</h2>
+                <button onclick="closeGallery()" style="width:auto; padding:10px 20px; background: #f44336;">CERRAR</button>
+            </div>
+            <div class="grid-gal" id="galGrid"></div>
+        </div>
+    </div>
+
+    <canvas id="procCanvas" style="display:none"></canvas>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
+        import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, serverTimestamp, query, orderBy } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCngQL1pdqghv2vbjkPycT1Xf0C46f7jYs",
+            authDomain: "cirineo-cec21.firebaseapp.com",
+            projectId: "cirineo-cec21",
+            storageBucket: "cirineo-cec21.firebasestorage.app",
+            messagingSenderId: "620210618284",
+            appId: "1:620210618284:web:482bab9bf74650fff18409"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        window.saveToDB = async (name, svg, count) => {
+            try {
+                await addDoc(collection(db, "proyectos_pedreria"), {
+                    nombre: name || "Sin Nombre",
+                    svg: svg,
+                    puntos: count,
+                    fecha: serverTimestamp()
+                });
+            } catch(e) { console.error(e); }
+        };
+
+        window.fetchGallery = async () => {
+            const grid = document.getElementById('galGrid');
+            grid.innerHTML = "Cargando...";
+            const q = query(collection(db, "proyectos_pedreria"), orderBy("fecha", "desc"));
+            const snap = await getDocs(q);
+            grid.innerHTML = "";
+            snap.forEach(d => {
+                const p = d.data();
+                const card = document.createElement('div');
+                card.className = "card";
+                card.innerHTML = `<div class="thumb">${p.svg}</div><strong>${p.nombre}</strong><br><small>${p.puntos} pts</small>`;
+                grid.appendChild(card);
+            });
+        };
+    </script>
+
+    <script>
+        let points = [];
+        let canvasW, canvasH;
+        let tool = 'del', selIdx = -1;
+        let scale = 1, offX = 0, offY = 0;
+        let isPanning = false, lastX, lastY;
+        let startDist = 0; // Para Pinch Zoom
+
+        // --- GENERACIÓN ---
+        function process() {
+            const file = document.getElementById('fileIn').files[0];
+            if(!file) return alert("Sube un logo");
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    const c = document.getElementById('procCanvas');
+                    const ctx = c.getContext('2d');
+                    canvasW = 1000; canvasH = img.height * (1000/img.width);
+                    c.width = canvasW; c.height = canvasH;
+                    ctx.drawImage(img, 0, 0, canvasW, canvasH);
+                    const data = ctx.getImageData(0,0,canvasW, canvasH).data;
+                    
+                    const xs = parseInt(document.getElementById('xStep').value);
+                    const ys = parseInt(document.getElementById('yStep').value);
+                    points = [];
+                    for(let y=0; y<canvasH; y+=ys) {
+                        for(let x=0; x<canvasW; x+=xs) {
+                            const i = (Math.floor(y)*canvasW + Math.floor(x))*4;
+                            if(data[i] < 128) points.push({x, y});
+                        }
+                    }
+                    drawSVG();
+                    document.getElementById('btnEdit').disabled = false;
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function drawSVG() {
+            const r = document.getElementById('radius').value;
+            let svg = `<svg viewBox="0 0 ${canvasW} ${canvasH}" xmlns="http://www.w3.org/2000/svg"><g fill="black">`;
+            points.forEach(p => svg += `<circle cx="${p.x}" cy="${p.y}" r="${r}"/>`);
+            svg += `</g></svg>`;
+            document.getElementById('svgWrapper').innerHTML = svg;
+        }
+
+        // --- EDITOR ENGINE ---
+        const canvas = document.getElementById('editorCanvas');
+        const ctx = canvas.getContext('2d');
+
+        function enterEditor() {
+            document.getElementById('editorOverlay').style.display = 'flex';
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            scale = Math.min(canvas.width/canvasW, canvas.height/canvasH) * 0.8;
+            offX = (canvas.width - canvasW*scale)/2;
+            offY = (canvas.height - canvasH*scale)/2;
+            renderLoop();
+        }
+
+        function renderLoop() {
+            if(document.getElementById('editorOverlay').style.display === 'none') return;
+            ctx.fillStyle = "#333";
+            ctx.fillRect(0,0,canvas.width, canvas.height);
+
+            ctx.save();
+            ctx.translate(offX, offY);
+            ctx.scale(scale, scale);
+            
+            // Lienzo blanco
+            ctx.fillStyle = "white";
+            ctx.fillRect(0,0, canvasW, canvasH);
+            
+            const r = parseFloat(document.getElementById('radius').value);
+            points.forEach((p, i) => {
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, r, 0, Math.PI*2);
+                if(tool === 'del') {
+                    ctx.fillStyle = "black"; ctx.fill();
+                    ctx.strokeStyle = "red"; ctx.lineWidth = r/2; ctx.stroke();
+                } else if(tool === 'mov' && i === selIdx) {
+                    ctx.fillStyle = "#2196f3"; ctx.fill();
+                } else {
+                    ctx.fillStyle = "black"; ctx.fill();
+                }
+            });
+            ctx.restore();
+            requestAnimationFrame(renderLoop);
+        }
+
+        // --- INTERACCIÓN (TOUCH & MOUSE) ---
+        canvas.addEventListener('mousedown', (e) => {
+            if(e.button === 2) { isPanning = true; lastX = e.clientX; lastY = e.clientY; return; }
+            handleAction(e.clientX, e.clientY);
+        });
+
+        canvas.addEventListener('mousemove', (e) => {
+            if(isPanning) {
+                offX += e.clientX - lastX;
+                offY += e.clientY - lastY;
+                lastX = e.clientX; lastY = e.clientY;
+            }
+        });
+
+        window.addEventListener('mouseup', () => isPanning = false);
+        canvas.oncontextmenu = (e) => e.preventDefault();
+
+        // Zoom Rueda
+        canvas.addEventListener('wheel', (e) => {
+            const zoom = e.deltaY < 0 ? 1.1 : 0.9;
+            scale *= zoom;
+        });
+
+        // Touch Pinch Zoom & Pan
+        canvas.addEventListener('touchstart', (e) => {
+            if(e.touches.length === 2) {
+                startDist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY);
+            } else {
+                lastX = e.touches[0].clientX; lastY = e.touches[0].clientY;
+                handleAction(lastX, lastY);
+            }
+        });
+
+        canvas.addEventListener('touchmove', (e) => {
+            if(e.touches.length === 2) {
+                const dist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY);
+                scale *= (dist / startDist);
+                startDist = dist;
+            } else if(e.touches.length === 1 && tool === 'mov' && selIdx !== -1) {
+                // Arrastrar punto en modo mover
+                const mx = (e.touches[0].clientX - offX) / scale;
+                const my = (e.touches[0].clientY - offY) / scale;
+                points[selIdx].x = mx; points[selIdx].y = my;
+            }
+        });
+
+        function handleAction(sx, sy) {
+            const mx = (sx - offX) / scale;
+            const my = (sy - offY) / scale;
+            const r = parseFloat(document.getElementById('radius').value);
+
+            let hit = -1;
+            points.forEach((p, i) => {
+                if(Math.hypot(p.x - mx, p.y - my) < r*3) hit = i;
+            });
+
+            if(tool === 'del' && hit !== -1) points.splice(hit, 1);
+            if(tool === 'add' && hit === -1) points.push({x: mx, y: my});
+            if(tool === 'mov') selIdx = hit;
+        }
+
+        function setTool(t) {
+            tool = t; selIdx = -1;
+            document.querySelectorAll('.tool').forEach(b => b.classList.remove('active'));
+            document.getElementById('t-'+t).classList.add('active');
+            document.getElementById('dpad').style.display = t === 'mov' ? 'grid' : 'none';
+        }
+
+        function nudge(dx, dy) { if(selIdx !== -1) { points[selIdx].x += dx; points[selIdx].y += dy; } }
+
+        async function exitEditor(confirm) {
+            document.getElementById('editorOverlay').style.display = 'none';
+            if(confirm) {
+                drawSVG();
+                const svg = document.getElementById('svgWrapper').innerHTML;
+                if(window.saveToDB) await window.saveToDB(document.getElementById('projName').value, svg, points.length);
+                // Descarga
+                const blob = new Blob([svg], {type: "image/svg+xml"});
+                const a = document.createElement("a");
+                a.href = URL.createObjectURL(blob);
+                a.download = (document.getElementById('projName').value || "jmvn") + ".svg";
+                a.click();
+            }
+        }
+
+        function openGallery() { document.getElementById('galModal').style.display = 'flex'; window.fetchGallery(); }
+        function closeGallery() { document.getElementById('galModal').style.display = 'none'; }
+        
+        // Sincronizar Sliders
+        document.querySelectorAll('input[type=range]').forEach(i => {
+            i.oninput = () => document.getElementById(i.id+'Val').innerText = i.value;
+        });
+    </script>
+</body>
+</html>
