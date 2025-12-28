@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>JMVN - Generador Pro V2.1</title>
+    <title>JMVN - Generador Pro V3.2 (Modular)</title>
     <style>
         :root { --accent: #ff0055; --bg: #111; --text: #eee; --panel: #222; }
         body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); display: flex; flex-direction: column; align-items: center; padding: 20px; margin: 0; touch-action: none; }
@@ -12,8 +12,9 @@
         h1 { margin: 0; font-size: 2.2rem; letter-spacing: 2px; text-transform: uppercase; }
         .red-text { color: var(--accent); } .white-text { color: white; }
 
-        /* Botón de Galería en Header */
-        .header-btn { position: absolute; right: 20px; top: 10px; background: #333; border: 1px solid #555; padding: 8px 15px; border-radius: 5px; color: white; cursor: pointer; display: flex; align-items: center; gap: 8px; }
+        /* Botonera Header */
+        .header-controls { position: absolute; right: 20px; top: 10px; display: flex; gap: 10px; }
+        .header-btn { background: #333; border: 1px solid #555; padding: 8px 15px; border-radius: 5px; color: white; cursor: pointer; display: flex; align-items: center; gap: 8px; font-size: 0.9rem; }
         .header-btn:hover { background: #444; border-color: var(--accent); }
 
         .container { background: var(--panel); padding: 25px; border-radius: 15px; box-shadow: 0 10px 40px rgba(0,0,0,0.8); width: 95%; max-width: 1400px; display: grid; grid-template-columns: 320px 1fr; gap: 25px; }
@@ -24,13 +25,14 @@
         .control-group.project-meta { border-color: var(--accent); background: #2a1a1f; }
         
         label { display: block; font-size: 0.85rem; color: #aaa; margin-bottom: 6px; }
-        input[type="text"], input[type="file"], input[type="number"], select { width: 100%; padding: 8px; background: #222; border: 1px solid #555; color: white; border-radius: 4px; box-sizing: border-box; }
+        input[type="text"], input[type="file"], input[type="number"], select, textarea { width: 100%; padding: 8px; background: #222; border: 1px solid #555; color: white; border-radius: 4px; box-sizing: border-box; }
         input[type="range"] { width: 100%; cursor: pointer; }
         
-        button { background: var(--accent); color: white; border: none; padding: 12px; border-radius: 6px; cursor: pointer; font-weight: bold; width: 100%; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 5px; font-size: 0.9rem; }
+        button { background: var(--accent); color: white; border: none; padding: 12px; border-radius: 6px; cursor: pointer; font-weight: bold; width: 100%; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 5px; font-size: 0.9rem; transition: 0.2s; }
         button:hover { filter: brightness(1.2); }
         button:disabled { background: #555; cursor: not-allowed; opacity: 0.7; }
         button.edit-mode-btn { background: #2196F3; box-shadow: 0 4px 10px rgba(33, 150, 243, 0.3); }
+        button.text-tool-btn { background: #9C27B0; margin-bottom: 15px; box-shadow: 0 4px 10px rgba(156, 39, 176, 0.3); }
 
         .val { float: right; color: var(--accent); font-weight: bold; }
         .dimensions-display { text-align: center; color: #00E676; font-family: monospace; font-size: 1.1rem; margin-top: 10px; }
@@ -68,15 +70,15 @@
         .btn-confirm { background: #00C853; }
         .btn-discard { background: #D50000; }
 
-        /* --- MODALES (Galería y Exportar) --- */
+        /* --- MODALES GENERALES --- */
         .modal-backdrop {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.9); z-index: 200; display: none;
             justify-content: center; align-items: center;
         }
         .modal-content {
-            background: #222; padding: 25px; border-radius: 12px; width: 90%; max-width: 600px;
-            border: 1px solid #444; max-height: 85vh; overflow-y: auto; text-align: center;
+            background: #222; padding: 25px; border-radius: 12px; width: 90%; max-width: 850px; 
+            border: 1px solid #444; max-height: 90vh; overflow-y: auto; text-align: center; position: relative;
         }
         .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #333; padding-bottom: 10px; }
         .close-btn { background: none; border: none; font-size: 1.5rem; cursor: pointer; width: auto; padding: 0; color: #888; }
@@ -98,7 +100,34 @@
         .export-option:hover { border-color: var(--accent); background: #2a1a1f; }
         .export-icon { font-size: 2rem; margin-bottom: 10px; display: block; }
         .export-label { font-weight: bold; color: white; display: block; }
-        .export-desc { font-size: 0.75rem; color: #aaa; margin-top: 5px; display: block; }
+
+        /* --- ESTILOS MODAL TEXTO (MODULAR) --- */
+        .text-preview-area { 
+            background: #fff; height: 160px; display: flex; align-items: center; justify-content: center; 
+            border-radius: 8px; margin-bottom: 15px; overflow: hidden; 
+            background-image: linear-gradient(45deg, #ccc 25%, transparent 25%), linear-gradient(-45deg, #ccc 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #ccc 75%), linear-gradient(-45deg, transparent 75%, #ccc 75%); 
+            background-size: 20px 20px; background-position: 0 0, 0 10px, 10px -10px, -10px 0px; 
+        }
+
+        .text-inputs-row {
+            display: grid; grid-template-columns: 1.5fr 1fr 1fr; gap: 15px;
+            background: #333; padding: 15px; border-radius: 10px; margin-bottom: 20px;
+            text-align: left; align-items: center;
+        }
+
+        .effects-container { text-align: left; }
+        .effects-label { font-size: 1.1rem; color: var(--accent); font-weight: bold; margin-bottom: 10px; display: block; }
+        
+        /* IFRAME CONTAINER PARA EFECTOS */
+        #effectsFrame {
+            width: 100%;
+            height: 380px;
+            border: 2px solid #444;
+            border-radius: 8px;
+            background: #111;
+        }
+
+        .font-item { display: flex; justify-content: space-between; background: #333; padding: 10px; margin-bottom: 5px; border-radius: 5px; align-items: center; }
 
         /* Controles de Flechas para MOVER */
         #dpad {
@@ -112,25 +141,35 @@
         .footer { margin-top: 30px; text-align: center; color: #555; font-size: 0.9rem; border-top: 1px solid #333; padding-top: 20px; width: 100%; }
         .gemini-tag { color: var(--accent); font-weight: bold; font-size: 0.8rem; letter-spacing: 1px; display: block; margin-top: 5px; }
 
-        @media (max-width: 900px) { .container { grid-template-columns: 1fr; } #visualWrapper { height: 500px; } .header-btn { position: relative; right: auto; top: auto; display: inline-flex; margin-bottom: 15px; } }
+        @media (max-width: 900px) { 
+            .container { grid-template-columns: 1fr; } 
+            #visualWrapper { height: 500px; } 
+            .header-controls { position: relative; right: auto; top: auto; display: flex; margin-bottom: 15px; justify-content: center; } 
+            .text-inputs-row { grid-template-columns: 1fr; }
+        }
     </style>
 </head>
 <body>
 
     <header>
         <h1><span class="red-text">HERRAMIENTAS INTELIGENTES</span> <span class="white-text">JMVN</span></h1>
-        <button class="header-btn" onclick="openGallery()">📂 Ver Diseños Guardados</button>
+        <div class="header-controls">
+            <button class="header-btn" onclick="openFontManager()">🅰️ Gestión Fuentes</button>
+            <button class="header-btn" onclick="openGallery()">📂 Ver Diseños</button>
+        </div>
     </header>
 
     <div class="container">
         <div class="controls">
+            <button class="text-tool-btn" onclick="openTextTool()">✨ CREAR TEXTO MÁGICO ✨</button>
+
             <div class="control-group project-meta">
                 <label style="color:white; font-weight:bold;">NOMBRE DEL PROYECTO *</label>
-                <input type="text" id="projectName" placeholder="Ej: Logo Camisa 01" autocomplete="off">
+                <input type="text" id="projectName" placeholder="Ej: Logo Versace 01" autocomplete="off">
             </div>
 
             <div class="control-group" id="imgInputGroup">
-                <label>1. Imagen del Logo (Nuevo)</label>
+                <label>1. O Cargar Imagen (Si no usas texto)</label>
                 <input type="file" id="imageInput" accept="image/*">
             </div>
 
@@ -141,7 +180,7 @@
             </div>
 
             <div class="control-group">
-                <label>3. Distribución (Solo Nuevos)</label>
+                <label>3. Distribución</label>
                 <select id="mode" class="param-input">
                     <option value="adaptive">Trazo Adaptativo (Curvas)</option>
                     <option value="honeycomb">Panal Orgánico</option>
@@ -176,7 +215,7 @@
 
         <div id="visualWrapper">
             <div id="svgContent">
-                <div style="color:#bbb; text-align:center">Sube imagen o carga proyecto<br>para visualizar.</div>
+                <div style="color:#bbb; text-align:center">Usa "Crear Texto Mágico" o sube imagen<br>para comenzar.</div>
             </div>
 
             <div id="editorOverlay">
@@ -208,11 +247,70 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h3 style="margin:0">Diseños Guardados</h3>
-                <button class="close-btn" onclick="closeGallery()">×</button>
+                <button class="close-btn" onclick="closeModal('galleryModal')">×</button>
             </div>
-            <div id="galleryList" class="project-list">
-                <div style="padding:20px; color:#aaa;">Cargando proyectos...</div>
+            <div id="galleryList" class="project-list"></div>
+        </div>
+    </div>
+
+    <div id="fontManagerModal" class="modal-backdrop">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 style="margin:0">Gestor de Fuentes</h3>
+                <button class="close-btn" onclick="closeModal('fontManagerModal')">×</button>
             </div>
+            <div style="text-align:left; margin-bottom:20px; background:#333; padding:15px; border-radius:8px;">
+                <label>Nombre de la Fuente</label>
+                <input type="text" id="newFontName" placeholder="Ej: Versace Font">
+                <label style="margin-top:10px;">URL del archivo (.ttf, .otf o Google Font URL)</label>
+                <input type="text" id="newFontUrl" placeholder="https://...">
+                <button onclick="saveNewFont()" style="margin-top:10px; background:#00E676; color:black;">+ Agregar a Base de Datos</button>
+            </div>
+            <h4 style="text-align:left">Fuentes Disponibles:</h4>
+            <div id="fontListDisplay" class="project-list" style="max-height:200px; overflow-y:auto;"></div>
+        </div>
+    </div>
+
+    <div id="textToolModal" class="modal-backdrop">
+        <div class="modal-content" style="max-width:900px;">
+            <div class="modal-header">
+                <h3 style="margin:0">✨ Diseñador de Texto Mágico</h3>
+                <button class="close-btn" onclick="closeModal('textToolModal')">×</button>
+            </div>
+            
+            <div class="text-preview-area">
+                <canvas id="textPreviewCanvas" height="160"></canvas>
+            </div>
+
+            <div class="text-inputs-row">
+                <div>
+                    <label>Texto:</label>
+                    <textarea id="txtString" rows="1" style="resize:none; font-size:1.1rem; letter-spacing:1px;" oninput="updateTextPreview()">VERSACE</textarea>
+                </div>
+                <div>
+                    <label>Fuente:</label>
+                    <select id="txtFontFamily" onchange="updateTextPreview()">
+                        <option value="Arial">Arial (Sistema)</option>
+                        <option value="Times New Roman">Times New Roman</option>
+                        <option value="Impact">Impact</option>
+                        <option value="Courier New">Courier New</option>
+                        </select>
+                </div>
+                <div>
+                    <label>Tamaño / Dispersión:</label>
+                    <input type="range" id="rngTxtSize" min="40" max="300" value="120" oninput="updateTextPreview()" title="Tamaño Texto">
+                    <input type="range" id="rngScatter" min="10" max="100" value="40" oninput="updateTextPreview()" style="margin-top:5px;" title="Intensidad Efecto">
+                </div>
+            </div>
+
+            <div class="effects-container">
+                <span class="effects-label">📚 Catálogo de Efectos (Cargado desde Módulo Externo)</span>
+                
+                <iframe id="effectsFrame" src="efectos.html"></iframe>
+                
+            </div>
+
+            <button onclick="applyTextToWorkspace()" style="margin-top:20px; font-size:1.1rem; width:100%;">🚀 GENERAR PEDRERÍA Y CERRAR</button>
         </div>
     </div>
 
@@ -220,24 +318,21 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h3 style="margin:0">Seleccionar Formato</h3>
-                <button class="close-btn" onclick="closeExport()">×</button>
+                <button class="close-btn" onclick="closeModal('exportModal')">×</button>
             </div>
             <p>El diseño se guardará en la nube y se descargará en:</p>
             <div class="export-grid">
                 <div class="export-option" onclick="finalizeExport('svg')">
                     <span class="export-icon">🎨</span>
                     <span class="export-label">SVG</span>
-                    <span class="export-desc">Web, Illustrator, Corel</span>
                 </div>
                 <div class="export-option" onclick="finalizeExport('plt')">
                     <span class="export-icon">📠</span>
                     <span class="export-label">PLT (HPGL)</span>
-                    <span class="export-desc">Plotters, Láser, Corte</span>
                 </div>
                 <div class="export-option" onclick="finalizeExport('ai')">
                     <span class="export-icon">✒️</span>
                     <span class="export-label">AI (EPS)</span>
-                    <span class="export-desc">Adobe Illustrator Legacy</span>
                 </div>
             </div>
         </div>
@@ -247,7 +342,7 @@
 
     <div class="footer">
         Desarrollado por <strong>JESÚS VALLEJO</strong><br>
-        <span class="gemini-tag">POWERED BY GEMINI 3 PRO - V2.1 (FIXED)</span>
+        <span class="gemini-tag">POWERED BY GEMINI 3 PRO - V3.2 (MODULAR SYSTEM)</span>
         <div style="margin-top:10px; font-style:italic; font-size:0.75rem">
             HERRAMIENTA DE USO EXCLUSIVO PARA EMPLEADOS DE <b>VIVA ROUSS</b> Y <b>MISS ROUSS</b>.
         </div>
@@ -269,67 +364,100 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        // --- FUNCIONES DE BASE DE DATOS ---
-
+        // --- GESTIÓN DE PROYECTOS ---
         window.fetchProjectsFromDB = async () => {
             const list = document.getElementById('galleryList');
             list.innerHTML = '<div style="padding:20px; color:#aaa;">Cargando...</div>';
-            
             try {
                 const q = query(collection(db, "proyectos_pedreria"), orderBy("fecha", "desc"), limit(20));
                 const querySnapshot = await getDocs(q);
-                
                 list.innerHTML = "";
                 if(querySnapshot.empty) {
-                    list.innerHTML = '<div style="padding:20px;">No hay proyectos guardados aún.</div>';
+                    list.innerHTML = '<div style="padding:20px;">No hay proyectos.</div>';
                     return;
                 }
-
                 querySnapshot.forEach((doc) => {
                     const data = doc.data();
                     const date = data.fecha ? data.fecha.toDate().toLocaleDateString() : "S/F";
                     const safeName = data.nombre_proyecto || "Sin nombre";
-                    
                     const li = document.createElement('div');
                     li.className = 'project-item';
                     li.innerHTML = `
-                        <div class="p-info">
-                            <h4>${safeName}</h4>
-                            <span>${date} • ${data.puntos_total || "?"} puntos</span>
-                        </div>
+                        <div class="p-info"><h4>${safeName}</h4><span>${date} • ${data.puntos_total || "?"} pts</span></div>
                         <button class="btn-load" onclick='loadProjectData(${JSON.stringify(data).replace(/'/g, "&#39;")})'>CARGAR</button>
                     `;
                     list.appendChild(li);
                 });
-            } catch (e) {
-                console.error(e);
-                list.innerHTML = '<div style="color:red">Error cargando lista.</div>';
-            }
+            } catch (e) { console.error(e); list.innerHTML = '<div style="color:red">Error cargando lista.</div>'; }
         };
 
         window.saveToFirebase = async (points, svgString, format) => {
             const name = document.getElementById('projectName').value.trim();
             if(!name) return; 
-            
             try {
-                const pointsJson = JSON.stringify(points);
-
                 await addDoc(collection(db, "proyectos_pedreria"), {
                     nombre_proyecto: name,
                     puntos_total: points.length,
-                    puntos_json: pointsJson, 
-                    svg_generado: svgString, // Guardamos también el SVG para backup
+                    puntos_json: JSON.stringify(points), 
+                    svg_generado: svgString,
                     formato_exportado: format,
                     config: window.getLastConfig(),
                     fecha: serverTimestamp(),
-                    autor: "JESÚS VALLEJO / STAFF"
+                    autor: "JESÚS VALLEJO"
                 });
-                console.log("✅ Guardado en Firebase con JSON de puntos.");
-            } catch(e) {
-                console.error("Error guardando:", e);
-                alert("⚠️ Se descargó el archivo, pero hubo un error guardando en la base de datos.");
-            }
+            } catch(e) { console.error("Error DB:", e); }
         };
+
+        // --- GESTIÓN DE FUENTES ---
+        window.fetchFontsFromDB = async () => {
+            const list = document.getElementById('fontListDisplay');
+            const select = document.getElementById('txtFontFamily');
+            list.innerHTML = "Cargando...";
+            
+            try {
+                const q = query(collection(db, "fuentes_usuario"), orderBy("nombre", "asc"));
+                const querySnapshot = await getDocs(q);
+                
+                list.innerHTML = "";
+                while (select.options.length > 4) { select.remove(4); }
+
+                querySnapshot.forEach((doc) => {
+                    const f = doc.data();
+                    const item = document.createElement('div');
+                    item.className = 'font-item';
+                    item.innerHTML = `<strong>${f.nombre}</strong><span style="font-size:0.7rem; color:#aaa; max-width:150px; overflow:hidden; text-overflow:ellipsis;">${f.url}</span>`;
+                    list.appendChild(item);
+                    loadFontToBrowser(f.nombre, f.url);
+                    const opt = document.createElement('option');
+                    opt.value = f.nombre;
+                    opt.text = f.nombre + " (Custom)";
+                    select.add(opt);
+                });
+            } catch (e) { console.error(e); list.innerHTML = "Error cargando fuentes."; }
+        };
+
+        window.saveNewFont = async () => {
+            const name = document.getElementById('newFontName').value.trim();
+            const url = document.getElementById('newFontUrl').value.trim();
+            if(!name || !url) return alert("Llena ambos campos");
+            try {
+                await addDoc(collection(db, "fuentes_usuario"), { nombre: name, url: url, fecha: serverTimestamp() });
+                alert("Fuente agregada. Se recargará la lista.");
+                document.getElementById('newFontName').value = "";
+                document.getElementById('newFontUrl').value = "";
+                window.fetchFontsFromDB();
+            } catch(e) { alert("Error guardando fuente."); }
+        };
+
+        async function loadFontToBrowser(name, url) {
+            try {
+                const font = new FontFace(name, `url(${url})`);
+                await font.load();
+                document.fonts.add(font);
+            } catch(e) { console.error("No se pudo cargar la fuente visualmente:", name); }
+        }
+        
+        window.fetchFontsFromDB();
     </script>
 
     <script>
@@ -339,189 +467,294 @@
         let canvasWidth = 1000;       
         let canvasHeight = 1000;
         let isLoadedProject = false; 
-        
         let manualEditsMade = false;
 
-        // --- ESTADO DEL EDITOR ---
-        let editTool = 'delete';
-        let selectedPointIdx = -1;
-        let editorScale = 1;
-        let editorOffsetX = 0;
-        let editorOffsetY = 0;
-        let isDragging = false;
-        let lastMouse = {x:0, y:0};
+        // Estado del Editor de Texto (Por defecto 'fill' hasta que el iframe diga lo contrario)
+        let currentTextEffect = 'fill';
         
-        // --- INPUTS UI ---
-        const inputs = document.querySelectorAll('.param-input');
-        inputs.forEach(i => i.addEventListener('input', handleParamChange));
+        // --- UI HELPERS ---
+        function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+        function openGallery() { document.getElementById('galleryModal').style.display = 'flex'; if(window.fetchProjectsFromDB) window.fetchProjectsFromDB(); }
+        function openFontManager() { document.getElementById('fontManagerModal').style.display = 'flex'; if(window.fetchFontsFromDB) window.fetchFontsFromDB(); }
         
-        document.getElementById('realWidthCm').addEventListener('input', updateLabels);
-        document.getElementById('radius').addEventListener('input', () => {
-            if(isLoadedProject) renderSVGPreview(); 
-            updateLabels();
+        // --- LÓGICA DEL DISEÑADOR DE TEXTO & COMUNICACIÓN CON EFECTOS.HTML ---
+        
+        // 1. Escuchar mensajes del iframe (efectos.html)
+        window.addEventListener('message', (event) => {
+            // Verificar origen si fuera necesario, aquí asumimos local/mismo dominio
+            if (event.data && event.data.action === 'applyEffect') {
+                const effectName = event.data.effectName;
+                console.log("Efecto recibido desde módulo externo:", effectName);
+                
+                // Actualizar estado local
+                currentTextEffect = effectName;
+                
+                // Habilitar o deshabilitar sliders según el efecto (lógica de UI)
+                const sc = document.getElementById('rngScatter');
+                // Si el efecto es simple, desactivamos scatter
+                const simpleEffects = ['fill', 'outline'];
+                sc.disabled = simpleEffects.includes(effectName);
+                sc.parentElement.style.opacity = sc.disabled ? '0.5' : '1';
+
+                // Actualizar la vista previa inmediatamente
+                updateTextPreview();
+            }
         });
 
-        inputs.forEach(i => i.addEventListener('mousedown', checkManualEditsWarning));
-        inputs.forEach(i => i.addEventListener('touchstart', checkManualEditsWarning));
+        function openTextTool() {
+            document.getElementById('textToolModal').style.display = 'flex';
+            updateTextPreview();
+        }
 
-        function checkManualEditsWarning() {
-            if(manualEditsMade && !isLoadedProject) {
-                const proceed = confirm("⚠️ ¡ADVERTENCIA!\n\nHiciste ediciones manuales. Si cambias la densidad/ángulo, se regenerará todo y PERDERÁS tus ediciones.\n\n¿Continuar?");
-                if(proceed) {
-                    manualEditsMade = false;
-                    processImage(); 
+        // NOTA: La función selectEffect() ha sido eliminada de aquí porque ahora
+        // la selección sucede dentro del iframe 'efectos.html'.
+
+        function updateTextPreview() {
+            const cvs = document.getElementById('textPreviewCanvas');
+            const ctx = cvs.getContext('2d');
+            const text = document.getElementById('txtString').value;
+            const fontName = document.getElementById('txtFontFamily').value;
+            const size = parseInt(document.getElementById('rngTxtSize').value);
+            const scatter = parseInt(document.getElementById('rngScatter').value);
+
+            // Ajustar canvas dinámicamente
+            cvs.width = Math.max(600, text.length * (size * 0.6) + 100);
+            cvs.height = size * 2.5;
+
+            // Fondo negro (representa la camiseta)
+            ctx.fillStyle = "black";
+            ctx.fillRect(0,0,cvs.width, cvs.height);
+
+            ctx.font = `bold ${size}px "${fontName}"`;
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            const cx = cvs.width / 2;
+            const cy = cvs.height / 2;
+
+            // Lógica de Renderizado (Motor Gráfico)
+            if (currentTextEffect === 'fill') {
+                ctx.fillStyle = "white";
+                ctx.fillText(text, cx, cy);
+            } 
+            else if (currentTextEffect === 'outline') {
+                ctx.strokeStyle = "white";
+                ctx.lineWidth = size * 0.05;
+                ctx.strokeText(text, cx, cy);
+            }
+            else if (currentTextEffect === 'versace_box') {
+                const metrics = ctx.measureText(text);
+                const w = metrics.width + size;
+                const h = size * 1.5;
+                drawScatterRect(ctx, cx - w/2, cy - h/2, w, h, scatter, true);
+                ctx.globalCompositeOperation = 'destination-out';
+                ctx.fillText(text, cx, cy);
+                ctx.globalCompositeOperation = 'source-over';
+            }
+            else if (currentTextEffect === 'versace_text') {
+                const tempCvs = document.createElement('canvas');
+                tempCvs.width = cvs.width; tempCvs.height = cvs.height;
+                const tCtx = tempCvs.getContext('2d');
+                tCtx.font = ctx.font; tCtx.textAlign = ctx.textAlign; tCtx.textBaseline = ctx.textBaseline;
+                tCtx.fillStyle = "white";
+                tCtx.fillText(text, cx, cy);
+                drawScatterText(ctx, tCtx, scatter);
+            }
+        }
+
+        function drawScatterRect(ctx, x, y, w, h, intensity, invert) {
+            for(let i=0; i<3000; i++) {
+                const px = x + Math.random() * w;
+                const py = y + Math.random() * h;
+                const dx = Math.abs(px - (x + w/2)) / (w/2);
+                const prob = 1 - (dx * (intensity/50)); 
+                if(Math.random() < 1) { 
+                    ctx.fillStyle = "rgba(255,255,255,0.8)";
+                    ctx.beginPath(); ctx.arc(px, py, 1, 0, Math.PI*2); ctx.fill();
+                }
+            }
+            ctx.fillStyle = "rgba(255,255,255,0.1)"; 
+            ctx.fillRect(x + w*0.1, y + h*0.1, w*0.8, h*0.8);
+        }
+
+        function drawScatterText(targetCtx, sourceCtx, intensity) {
+            targetCtx.drawImage(sourceCtx.canvas, 0, 0);
+        }
+
+        // --- APLICAR TEXTO AL WORKSPACE PRINCIPAL ---
+        function applyTextToWorkspace() {
+            const previewCvs = document.getElementById('textPreviewCanvas');
+            const procCanvas = document.getElementById('procCanvas');
+            const ctx = procCanvas.getContext('2d');
+            
+            procCanvas.width = previewCvs.width * 2;
+            procCanvas.height = previewCvs.height * 2;
+            
+            const text = document.getElementById('txtString').value;
+            const fontName = document.getElementById('txtFontFamily').value;
+            const size = parseInt(document.getElementById('rngTxtSize').value) * 2;
+            const scatter = parseInt(document.getElementById('rngScatter').value);
+
+            ctx.fillStyle = "white"; 
+            ctx.fillRect(0,0, procCanvas.width, procCanvas.height);
+            
+            ctx.font = `bold ${size}px "${fontName}"`;
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            const cx = procCanvas.width / 2;
+            const cy = procCanvas.height / 2;
+            
+            ctx.fillStyle = "black";
+            ctx.strokeStyle = "black";
+
+            if (currentTextEffect === 'fill') {
+                ctx.fillText(text, cx, cy);
+            }
+            else if (currentTextEffect === 'outline') {
+                ctx.lineWidth = size * 0.05;
+                ctx.strokeText(text, cx, cy);
+            }
+            else if (currentTextEffect === 'versace_box') {
+                const metrics = ctx.measureText(text);
+                const w = metrics.width + size;
+                const h = size * 1.5;
+                highQualityScatterBox(ctx, cx, cy, w, h, scatter);
+                ctx.globalCompositeOperation = 'destination-out';
+                ctx.fillText(text, cx, cy);
+                ctx.globalCompositeOperation = 'source-over';
+            }
+            else if (currentTextEffect === 'versace_text') {
+                ctx.fillText(text, cx, cy);
+                applyEdgeScatter(ctx, scatter);
+            }
+
+            canvasWidth = procCanvas.width;
+            canvasHeight = procCanvas.height;
+            document.getElementById('textToolModal').style.display = 'none';
+            document.getElementById('imgInputGroup').style.display = 'none';
+            document.getElementById('btnGenerate').style.display = 'block';
+            
+            generatePoints(ctx);
+            renderSVGPreview();
+            updateLabels();
+            document.getElementById('btnOpenEditor').disabled = false;
+        }
+
+        function highQualityScatterBox(ctx, cx, cy, w, h, intensity) {
+            const steps = 15000 * (intensity/10); 
+            for(let i=0; i<steps; i++) {
+                let rx = (Math.random() - 0.5) * w;
+                let ry = (Math.random() - 0.5) * h;
+                let dx = Math.abs(rx) / (w/2);
+                let dy = Math.abs(ry) / (h/2);
+                let dist = Math.max(dx, dy); 
+                let threshold = 1 - Math.pow(dist, (intensity/20)); 
+                if (Math.random() < threshold) {
+                    ctx.beginPath();
+                    ctx.arc(cx + rx, cy + ry, 2, 0, Math.PI*2);
+                    ctx.fill();
                 }
             }
         }
 
-        function handleParamChange(e) {
-            updateLabels();
-            if(isLoadedProject && (e.target.id === 'yStep' || e.target.id === 'xStep' || e.target.id === 'angle')) {
-                return;
+        function applyEdgeScatter(ctx, intensity) {
+            const idata = ctx.getImageData(0,0, ctx.canvas.width, ctx.canvas.height);
+            const data = idata.data;
+            const w = ctx.canvas.width;
+            const h = ctx.canvas.height;
+            const newCanvas = document.createElement('canvas');
+            newCanvas.width = w; newCanvas.height = h;
+            const nCtx = newCanvas.getContext('2d');
+            nCtx.putImageData(idata, 0, 0);
+            
+            const scatterCount = intensity * 25; 
+            nCtx.fillStyle = "black";
+            
+            for(let i=0; i<scatterCount; i++) {
+                const x = Math.floor(Math.random() * w);
+                const y = Math.floor(Math.random() * h);
+                const idx = (y * w + x) * 4;
+                if (data[idx+3] > 0 && data[idx] < 50) {
+                    const angle = Math.random() * Math.PI * 2;
+                    const dist = Math.random() * (intensity * 2.5); 
+                    nCtx.beginPath();
+                    nCtx.arc(x + Math.cos(angle)*dist, y + Math.sin(angle)*dist, 1.5, 0, Math.PI*2);
+                    nCtx.fill();
+                }
             }
+            ctx.drawImage(newCanvas, 0, 0);
         }
+
+        // --- LÓGICA EXISTENTE ---
+        const inputs = document.querySelectorAll('.param-input');
+        inputs.forEach(i => i.addEventListener('input', handleParamChange));
+        document.getElementById('realWidthCm').addEventListener('input', updateLabels);
+        document.getElementById('radius').addEventListener('input', () => { if(isLoadedProject || globalPoints.length > 0) renderSVGPreview(); updateLabels(); });
+
+        function handleParamChange(e) { updateLabels(); }
 
         function updateLabels() {
             const realW = parseFloat(document.getElementById('realWidthCm').value) || 25;
             const w = canvasWidth > 0 ? canvasWidth : 1000;
             const scaleFactor = (realW * 10) / w; 
-            
             document.getElementById('yStepVal').innerText = (document.getElementById('yStep').value * scaleFactor).toFixed(1);
             document.getElementById('xStepVal').innerText = (document.getElementById('xStep').value * scaleFactor).toFixed(1);
             document.getElementById('angleVal').innerText = document.getElementById('angle').value;
-            
             const rPx = parseFloat(document.getElementById('radius').value);
             document.getElementById('radiusVal').innerText = (rPx * 2 * scaleFactor).toFixed(1);
-
             if(canvasHeight > 0) {
                 const hCm = (canvasHeight * (realW / w)).toFixed(1);
                 document.getElementById('dimDisplay').innerText = `Dimensiones Finales: ${realW} cm x ${hCm} cm`;
             }
         }
+        window.getLastConfig = () => { return { mode: document.getElementById('mode').value, realWidth: document.getElementById('realWidthCm').value, radiusPx: document.getElementById('radius').value }; }
 
-        window.getLastConfig = () => {
-            return {
-                mode: document.getElementById('mode').value,
-                realWidth: document.getElementById('realWidthCm').value,
-                radiusPx: document.getElementById('radius').value,
-                generatedDate: new Date().toISOString()
-            };
-        }
-
-        // --- GALERÍA Y CARGA ---
-        function openGallery() {
-            document.getElementById('galleryModal').style.display = 'flex';
-            if(window.fetchProjectsFromDB) window.fetchProjectsFromDB();
-        }
-        function closeGallery() { document.getElementById('galleryModal').style.display = 'none'; }
-
-        // --- CARGA DE PROYECTO (VERSION MEJORADA V2.1) ---
         window.loadProjectData = (data) => {
-            if(confirm("Al cargar un proyecto se borrará el trabajo actual. ¿Continuar?")) {
+            if(confirm("Se reemplazará el trabajo actual. ¿Continuar?")) {
                 try {
-                    globalPoints = [];
-
-                    // CASO 1: PROYECTO NUEVO (Tiene JSON de puntos)
-                    if (data.puntos_json) {
-                        globalPoints = JSON.parse(data.puntos_json);
-                        console.log("Carga: Modo JSON nativo");
-                    } 
-                    // CASO 2: PROYECTO ANTIGUO (Solo tiene SVG) - INTENTO DE RESCATE
-                    else if (data.svg_generado) {
-                        console.log("Carga: Modo rescate SVG");
-                        const parser = new DOMParser();
-                        const doc = parser.parseFromString(data.svg_generado, "image/svg+xml");
-                        const circles = doc.querySelectorAll('circle');
-                        
-                        if(circles.length > 0) {
-                            circles.forEach(c => {
-                                globalPoints.push({
-                                    x: parseFloat(c.getAttribute('cx')),
-                                    y: parseFloat(c.getAttribute('cy'))
-                                });
-                            });
-                            alert("⚠️ ESTE PROYECTO ERA ANTIGUO.\n\nEl sistema ha reconstruido los puntos desde el dibujo visual. Ahora podrás editar el tamaño de piedra y guardar en los nuevos formatos.");
-                        } else {
-                            alert("❌ Error: El archivo antiguo está vacío o dañado.");
-                            return;
-                        }
-                    } else {
-                        alert("❌ Error: Este proyecto no tiene datos válidos.");
-                        return;
-                    }
-
-                    // Restaurar Configuración Básica
+                    if (data.puntos_json) globalPoints = JSON.parse(data.puntos_json);
+                    else alert("Proyecto antiguo no compatible.");
                     document.getElementById('projectName').value = data.nombre_proyecto;
-                    if(data.config) {
-                        document.getElementById('realWidthCm').value = data.config.realWidth || 25;
-                        document.getElementById('radius').value = data.config.radiusPx || 2.5;
-                    }
-
-                    // Ajustar entorno
                     isLoadedProject = true;
-                    manualEditsMade = false; 
-                    
-                    // Recalcular tamaño del lienzo basado en los puntos
                     let maxX = 0, maxY = 0;
-                    globalPoints.forEach(p => {
-                        if(p.x > maxX) maxX = p.x;
-                        if(p.y > maxY) maxY = p.y;
-                    });
-                    canvasWidth = maxX + 50; 
-                    canvasHeight = maxY + 50;
-                    
-                    // UI Updates
+                    globalPoints.forEach(p => { if(p.x > maxX) maxX = p.x; if(p.y > maxY) maxY = p.y; });
+                    canvasWidth = maxX + 50; canvasHeight = maxY + 50;
                     document.getElementById('btnOpenEditor').disabled = false;
-                    document.getElementById('imgInputGroup').style.display = 'none'; 
-                    document.getElementById('btnGenerate').style.display = 'none'; 
-                    closeGallery();
-                    
-                    renderSVGPreview();
-                    updateLabels();
-
-                } catch(e) {
-                    console.error(e);
-                    alert("Error procesando datos del proyecto.");
-                }
+                    closeModal('galleryModal');
+                    renderSVGPreview(); updateLabels();
+                } catch(e) { console.error(e); }
             }
         };
 
-        // --- PROCESAMIENTO DE IMAGEN (NUEVO) ---
         function processImage() {
             const input = document.getElementById('imageInput');
-            if (!input.files[0]) return alert("Selecciona una imagen primero.");
-
-            manualEditsMade = false; 
-            isLoadedProject = false;
-            document.getElementById('btnGenerate').style.display = 'block';
-
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                const img = new Image();
-                img.onload = () => {
-                    const c = document.getElementById('procCanvas');
-                    const ctx = c.getContext('2d', { willReadFrequently: true });
-                    
-                    const maxW = 1000;
-                    const scale = maxW / img.width;
-                    c.width = maxW;
-                    c.height = img.height * scale;
-                    
-                    canvasWidth = c.width;
-                    canvasHeight = c.height;
-
-                    ctx.fillStyle = "white";
-                    ctx.fillRect(0,0,c.width, c.height);
-                    ctx.drawImage(img, 0, 0, c.width, c.height);
-                    
-                    generatePoints(ctx);
-                    renderSVGPreview();
-                    updateLabels();
-                    document.getElementById('btnOpenEditor').disabled = false;
+            const isTextMode = document.getElementById('textToolModal').style.display === 'none' && canvasWidth > 0;
+            
+            if (!input.files[0] && !isTextMode) return alert("Selecciona imagen o usa el Creador de Texto.");
+            
+            if (input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        const c = document.getElementById('procCanvas');
+                        const ctx = c.getContext('2d', { willReadFrequently: true });
+                        const maxW = 1000;
+                        const scale = maxW / img.width;
+                        c.width = maxW; c.height = img.height * scale;
+                        canvasWidth = c.width; canvasHeight = c.height;
+                        ctx.fillStyle = "white"; ctx.fillRect(0,0,c.width, c.height);
+                        ctx.drawImage(img, 0, 0, c.width, c.height);
+                        generatePoints(ctx); renderSVGPreview(); updateLabels();
+                        document.getElementById('btnOpenEditor').disabled = false;
+                    };
+                    img.src = e.target.result;
                 };
-                img.src = e.target.result;
-            };
-            reader.readAsDataURL(input.files[0]);
+                reader.readAsDataURL(input.files[0]);
+            } else {
+                const c = document.getElementById('procCanvas');
+                const ctx = c.getContext('2d');
+                generatePoints(ctx); renderSVGPreview();
+            }
         }
 
         function generatePoints(ctx) {
@@ -529,11 +762,8 @@
             const xStep = parseInt(document.getElementById('xStep').value);
             const angle = parseInt(document.getElementById('angle').value) * (Math.PI / 180);
             const mode = document.getElementById('mode').value;
-            
-            const w = ctx.canvas.width;
-            const h = ctx.canvas.height;
+            const w = ctx.canvas.width; const h = ctx.canvas.height;
             const imgData = ctx.getImageData(0, 0, w, h);
-            
             globalPoints = [];
 
             for (let y = -h; y < h * 2; y += yStep) {
@@ -541,15 +771,10 @@
                 for (let x = -w; x < w * 2; x += 1) {
                     const rotX = Math.floor(x * Math.cos(angle) - y * Math.sin(angle));
                     const rotY = Math.floor(x * Math.sin(angle) + y * Math.cos(angle));
-
                     if (rotX >= 0 && rotX < w && rotY >= 0 && rotY < h) {
                         const idx = (rotY * w + rotX) * 4;
-                        if (imgData.data[idx] < 150) {
-                            segment.push({x: rotX, y: rotY});
-                        } else if (segment.length > 0) {
-                            addSegment(segment, xStep, mode);
-                            segment = [];
-                        }
+                        if (imgData.data[idx] < 150) segment.push({x: rotX, y: rotY});
+                        else if (segment.length > 0) { addSegment(segment, xStep, mode); segment = []; }
                     }
                 }
                 if (segment.length > 0) addSegment(segment, xStep, mode);
@@ -564,289 +789,112 @@
                     const idx = Math.floor((seg.length / (count+1)) * (i+1));
                     globalPoints.push(seg[idx]);
                 }
-            } else {
-                for(let i=0; i<seg.length; i+=step) globalPoints.push(seg[i]);
-            }
+            } else { for(let i=0; i<seg.length; i+=step) globalPoints.push(seg[i]); }
         }
 
         function renderSVGPreview() {
             const r = parseFloat(document.getElementById('radius').value);
             let svg = `<svg viewBox="0 0 ${canvasWidth} ${canvasHeight}" style="max-height:100%; max-width:100%;"><g fill="black">`;
-            globalPoints.forEach(p => {
-                svg += `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="${r}" />`;
-            });
+            globalPoints.forEach(p => { svg += `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="${r}" />`; });
             svg += `</g></svg>`;
             document.getElementById('svgContent').innerHTML = svg;
         }
 
-        // --- MODO EDICIÓN (CANVAS) ---
+        // --- EDITOR CANVAS ---
         const editorCanvas = document.getElementById('editorCanvas');
         const ctxEdit = editorCanvas.getContext('2d');
-        let initialPinchDist = 0;
+        let editTool = 'delete'; let selectedPointIdx = -1; let editorScale = 1; let editorOffsetX = 0; let editorOffsetY = 0; let isDragging = false; let lastMouse = {x:0, y:0};
 
         function openEditor() {
             backupPoints = JSON.parse(JSON.stringify(globalPoints)); 
             document.getElementById('editorOverlay').style.display = 'flex';
-            
             const rect = document.getElementById('visualWrapper').getBoundingClientRect();
-            editorCanvas.width = rect.width;
-            editorCanvas.height = rect.height;
-            
+            editorCanvas.width = rect.width; editorCanvas.height = rect.height;
             editorScale = Math.min(editorCanvas.width / canvasWidth, editorCanvas.height / canvasHeight) * 0.9;
             editorOffsetX = (editorCanvas.width - canvasWidth * editorScale) / 2;
             editorOffsetY = (editorCanvas.height - canvasHeight * editorScale) / 2;
-
             requestAnimationFrame(drawEditorLoop);
         }
 
-        function setTool(t) {
-            editTool = t;
-            selectedPointIdx = -1; 
-            document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
-            document.querySelector(`.tool-btn.${t}`).classList.add('active');
-            document.getElementById('dpad').style.display = (t === 'move') ? 'grid' : 'none';
-            drawEditorLoop();
-        }
-
+        function setTool(t) { editTool = t; selectedPointIdx = -1; document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active')); document.querySelector(`.tool-btn.${t}`).classList.add('active'); document.getElementById('dpad').style.display = (t === 'move') ? 'grid' : 'none'; drawEditorLoop(); }
+        
         function drawEditorLoop() {
             ctxEdit.clearRect(0, 0, editorCanvas.width, editorCanvas.height);
-            ctxEdit.save();
-            ctxEdit.translate(editorOffsetX, editorOffsetY);
-            ctxEdit.scale(editorScale, editorScale);
-            
-            ctxEdit.fillStyle = "white";
-            ctxEdit.fillRect(0,0, canvasWidth, canvasHeight);
-            
+            ctxEdit.save(); ctxEdit.translate(editorOffsetX, editorOffsetY); ctxEdit.scale(editorScale, editorScale);
+            ctxEdit.fillStyle = "white"; ctxEdit.fillRect(0,0, canvasWidth, canvasHeight);
             const r = parseFloat(document.getElementById('radius').value);
-
             for(let i=0; i<globalPoints.length; i++) {
                 const p = globalPoints[i];
-                ctxEdit.beginPath();
-                ctxEdit.arc(p.x, p.y, r, 0, Math.PI*2);
-                
-                if (editTool === 'delete') {
-                    ctxEdit.fillStyle = "black"; ctxEdit.fill();
-                    ctxEdit.lineWidth = r/2; ctxEdit.strokeStyle = "red"; ctxEdit.stroke();
-                } 
-                else if (editTool === 'move' && i === selectedPointIdx) {
-                    ctxEdit.fillStyle = "#2196F3"; ctxEdit.fill();
-                    ctxEdit.strokeStyle = "#2196F3"; ctxEdit.lineWidth = 2;
-                    ctxEdit.beginPath(); ctxEdit.arc(p.x, p.y, r * 2, 0, Math.PI*2); ctxEdit.stroke();
-                }
-                else {
-                    ctxEdit.fillStyle = "black"; ctxEdit.fill();
-                }
+                ctxEdit.beginPath(); ctxEdit.arc(p.x, p.y, r, 0, Math.PI*2);
+                if (editTool === 'delete') { ctxEdit.fillStyle = "black"; ctxEdit.fill(); ctxEdit.lineWidth = r/2; ctxEdit.strokeStyle = "red"; ctxEdit.stroke(); } 
+                else if (editTool === 'move' && i === selectedPointIdx) { ctxEdit.fillStyle = "#2196F3"; ctxEdit.fill(); ctxEdit.strokeStyle = "#2196F3"; ctxEdit.lineWidth = 2; ctxEdit.stroke(); }
+                else { ctxEdit.fillStyle = "black"; ctxEdit.fill(); }
             }
             ctxEdit.restore();
         }
 
-        // Helpers de interacción
-        function screenToWorld(sx, sy) {
-            return { x: (sx - editorOffsetX) / editorScale, y: (sy - editorOffsetY) / editorScale };
-        }
-
-        editorCanvas.addEventListener('mousedown', startPan);
-        editorCanvas.addEventListener('mousemove', movePan);
-        editorCanvas.addEventListener('mouseup', endPan);
-        editorCanvas.addEventListener('wheel', handleWheel);
-        
-        editorCanvas.addEventListener('touchstart', (e) => {
-            if(e.touches.length === 2) {
-                isDragging = false; 
-                initialPinchDist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY);
-            } else startPan(e.touches[0]);
-        });
-        editorCanvas.addEventListener('touchmove', (e) => {
-            e.preventDefault();
-            if(e.touches.length === 2) {
-                const dist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY);
-                const zoomFactor = (dist - initialPinchDist) * 0.005;
-                editorScale *= (1 + zoomFactor);
-                initialPinchDist = dist;
-                drawEditorLoop();
-            } else movePan(e.touches[0]);
-        });
-        editorCanvas.addEventListener('touchend', (e) => { if(e.touches.length === 0) endPan(e.changedTouches[0]); });
-
-        let startClickTime = 0;
-        let didMove = false;
-
-        function startPan(e) {
-            isDragging = true; didMove = false; startClickTime = Date.now();
-            const rect = editorCanvas.getBoundingClientRect();
-            lastMouse = { x: e.clientX - rect.left, y: e.clientY - rect.top };
-        }
-
-        function movePan(e) {
-            if (!isDragging) return;
-            const rect = editorCanvas.getBoundingClientRect();
-            const x = e.clientX - rect.left; const y = e.clientY - rect.top;
-            if (Math.abs(x - lastMouse.x) > 2 || Math.abs(y - lastMouse.y) > 2) didMove = true;
-            editorOffsetX += (x - lastMouse.x); editorOffsetY += (y - lastMouse.y);
-            lastMouse = {x, y};
-            drawEditorLoop();
-        }
-
-        function endPan(e) {
-            isDragging = false;
-            const timeDiff = Date.now() - startClickTime;
-            if (timeDiff < 300 && !didMove) {
-                const rect = editorCanvas.getBoundingClientRect();
-                const clickX = (e.clientX || e.pageX) - rect.left;
-                const clickY = (e.clientY || e.pageY) - rect.top;
-                handleToolClick(clickX, clickY);
-            }
-        }
-
-        function handleWheel(e) {
-            e.preventDefault();
-            const s = (e.deltaY < 0) ? 1.1 : 0.9;
+        function screenToWorld(sx, sy) { return { x: (sx - editorOffsetX) / editorScale, y: (sy - editorOffsetY) / editorScale }; }
+        editorCanvas.addEventListener('mousedown', startPan); editorCanvas.addEventListener('mousemove', movePan); editorCanvas.addEventListener('mouseup', endPan);
+        editorCanvas.addEventListener('wheel', (e) => {
+            e.preventDefault(); const s = (e.deltaY < 0) ? 1.1 : 0.9;
             const rect = editorCanvas.getBoundingClientRect();
             const mx = e.clientX - rect.left; const my = e.clientY - rect.top;
-            editorOffsetX = mx - (mx - editorOffsetX) * s;
-            editorOffsetY = my - (my - editorOffsetY) * s;
-            editorScale *= s;
-            drawEditorLoop();
-        }
+            editorOffsetX = mx - (mx - editorOffsetX) * s; editorOffsetY = my - (my - editorOffsetY) * s;
+            editorScale *= s; drawEditorLoop();
+        });
+        
+        editorCanvas.addEventListener('touchstart', (e)=>{ if(e.touches.length === 1) startPan(e.touches[0]); });
+        editorCanvas.addEventListener('touchmove', (e)=>{ e.preventDefault(); if(e.touches.length === 1) movePan(e.touches[0]); });
+        editorCanvas.addEventListener('touchend', (e)=>{ endPan(e.changedTouches[0]); });
+
+        let startClickTime = 0; let didMove = false;
+        function startPan(e) { isDragging = true; didMove = false; startClickTime = Date.now(); const rect = editorCanvas.getBoundingClientRect(); lastMouse = { x: e.clientX - rect.left, y: e.clientY - rect.top }; }
+        function movePan(e) { if (!isDragging) return; const rect = editorCanvas.getBoundingClientRect(); const x = e.clientX - rect.left; const y = e.clientY - rect.top; if (Math.abs(x - lastMouse.x) > 2 || Math.abs(y - lastMouse.y) > 2) didMove = true; editorOffsetX += (x - lastMouse.x); editorOffsetY += (y - lastMouse.y); lastMouse = {x, y}; drawEditorLoop(); }
+        function endPan(e) { isDragging = false; const timeDiff = Date.now() - startClickTime; if (timeDiff < 300 && !didMove) { const rect = editorCanvas.getBoundingClientRect(); handleToolClick((e.clientX || e.pageX) - rect.left, (e.clientY || e.pageY) - rect.top); } }
 
         function handleToolClick(sx, sy) {
-            const wPos = screenToWorld(sx, sy);
-            const r = parseFloat(document.getElementById('radius').value);
+            const wPos = screenToWorld(sx, sy); const r = parseFloat(document.getElementById('radius').value);
             let hitIdx = -1; let minDist = r * 2.5;
-
-            for(let i=0; i<globalPoints.length; i++) {
-                const d = Math.hypot(globalPoints[i].x - wPos.x, globalPoints[i].y - wPos.y);
-                if (d < minDist) { minDist = d; hitIdx = i; }
-            }
-
-            if (editTool === 'delete' && hitIdx !== -1) {
-                globalPoints.splice(hitIdx, 1); manualEditsMade = true;
-            } else if (editTool === 'add' && hitIdx === -1) {
-                globalPoints.push({x: wPos.x, y: wPos.y}); manualEditsMade = true;
-            } else if (editTool === 'move') {
-                if (hitIdx !== -1) selectedPointIdx = hitIdx;
-                else if (selectedPointIdx !== -1) {
-                    globalPoints[selectedPointIdx].x = wPos.x;
-                    globalPoints[selectedPointIdx].y = wPos.y;
-                    manualEditsMade = true;
-                }
-            }
+            for(let i=0; i<globalPoints.length; i++) { const d = Math.hypot(globalPoints[i].x - wPos.x, globalPoints[i].y - wPos.y); if (d < minDist) { minDist = d; hitIdx = i; } }
+            if (editTool === 'delete' && hitIdx !== -1) { globalPoints.splice(hitIdx, 1); manualEditsMade = true; } 
+            else if (editTool === 'add' && hitIdx === -1) { globalPoints.push({x: wPos.x, y: wPos.y}); manualEditsMade = true; } 
+            else if (editTool === 'move') { if (hitIdx !== -1) selectedPointIdx = hitIdx; else if (selectedPointIdx !== -1) { globalPoints[selectedPointIdx].x = wPos.x; globalPoints[selectedPointIdx].y = wPos.y; manualEditsMade = true; } }
             drawEditorLoop();
         }
 
-        window.nudge = (dx, dy) => {
-            if (selectedPointIdx !== -1) {
-                globalPoints[selectedPointIdx].x += dx; globalPoints[selectedPointIdx].y += dy;
-                manualEditsMade = true; drawEditorLoop();
-            }
-        };
+        window.nudge = (dx, dy) => { if (selectedPointIdx !== -1) { globalPoints[selectedPointIdx].x += dx; globalPoints[selectedPointIdx].y += dy; manualEditsMade = true; drawEditorLoop(); } };
+        window.discardChanges = () => { if(confirm("¿Descartar?")) { globalPoints = backupPoints; document.getElementById('editorOverlay').style.display = 'none'; manualEditsMade = false; renderSVGPreview(); } };
+        window.confirmChanges = () => { if(!document.getElementById('projectName').value.trim()) return alert("Pon nombre al proyecto."); document.getElementById('editorOverlay').style.display = 'none'; renderSVGPreview(); document.getElementById('exportModal').style.display = 'flex'; };
 
-        window.discardChanges = () => {
-            if(confirm("¿Descartar cambios y volver al inicio de edición?")) {
-                globalPoints = backupPoints;
-                document.getElementById('editorOverlay').style.display = 'none';
-                manualEditsMade = false;
-                renderSVGPreview();
-            }
-        };
-
-        // --- EXPORTACIÓN Y CONFIRMACIÓN ---
-
-        window.confirmChanges = () => {
-            const name = document.getElementById('projectName').value.trim();
-            if(!name) { alert("Por favor ingresa un NOMBRE DEL PROYECTO antes de confirmar."); return; }
-            
-            document.getElementById('editorOverlay').style.display = 'none';
-            renderSVGPreview();
-            
-            document.getElementById('exportModal').style.display = 'flex';
-        };
-
-        function closeExport() { document.getElementById('exportModal').style.display = 'none'; }
-
+        // --- EXPORTACIÓN ---
         window.finalizeExport = async (format) => {
             const name = document.getElementById('projectName').value.trim() || "diseño";
             const svgString = document.getElementById('svgContent').innerHTML;
-            
-            let blob = null;
-            let extension = "";
-
-            if (format === 'svg') {
-                blob = new Blob([svgString], {type: "image/svg+xml"});
-                extension = ".svg";
-            } 
-            else if (format === 'plt') {
-                const pltContent = generatePLT();
-                blob = new Blob([pltContent], {type: "text/plain"});
-                extension = ".plt";
-            }
-            else if (format === 'ai') {
-                const aiContent = generateEPS();
-                blob = new Blob([aiContent], {type: "application/postscript"});
-                extension = ".ai"; 
-            }
-
+            let blob = null; let ext = "";
+            if (format === 'svg') { blob = new Blob([svgString], {type: "image/svg+xml"}); ext = ".svg"; } 
+            else if (format === 'plt') { blob = new Blob([generatePLT()], {type: "text/plain"}); ext = ".plt"; }
+            else if (format === 'ai') { blob = new Blob([generateEPS()], {type: "application/postscript"}); ext = ".ai"; }
             const url = URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = name + "_JMVN" + extension;
-            a.click();
-
-            if (window.saveToFirebase) {
-                await window.saveToFirebase(globalPoints, svgString, format);
-            }
-            
-            closeExport();
-            alert(`✅ Archivo ${extension} descargado y proyecto guardado.`);
+            const a = document.createElement("a"); a.href = url; a.download = name + "_JMVN" + ext; a.click();
+            if (window.saveToFirebase) await window.saveToFirebase(globalPoints, svgString, format);
+            closeModal('exportModal'); alert(`✅ Archivo ${ext} listo.`);
         };
 
-        // GENERADOR PLT (HPGL)
         function generatePLT() {
-            const realW_mm = parseFloat(document.getElementById('realWidthCm').value) * 10;
-            const pxToMm = realW_mm / canvasWidth;
-            const mmToPlt = 40; 
-            const scale = pxToMm * mmToPlt;
-            
-            const rPx = parseFloat(document.getElementById('radius').value);
-            const rPlt = (rPx * scale).toFixed(0);
-
+            const scale = (parseFloat(document.getElementById('realWidthCm').value) * 10 / canvasWidth) * 40;
+            const rPlt = (parseFloat(document.getElementById('radius').value) * scale).toFixed(0);
             let plt = "IN;PU;"; 
-            
-            globalPoints.forEach(p => {
-                const x = (p.x * scale).toFixed(0);
-                const y = (-p.y * scale).toFixed(0); 
-                plt += `PU${x},${y};CI${rPlt};`; 
-            });
-            
-            plt += "PU0,0;IN;";
-            return plt;
+            globalPoints.forEach(p => { plt += `PU${(p.x * scale).toFixed(0)},${(-p.y * scale).toFixed(0)};CI${rPlt};`; });
+            return plt + "PU0,0;IN;";
         }
 
-        // GENERADOR EPS (Compatible con Illustrator)
         function generateEPS() {
-            const realW_pt = parseFloat(document.getElementById('realWidthCm').value) * 28.3465; // cm a postscript points
-            const scale = realW_pt / canvasWidth;
-            const h_pt = canvasHeight * scale;
-            const r = parseFloat(document.getElementById('radius').value) * scale;
-
-            let eps = `%!PS-Adobe-3.0 EPSF-3.0
-%%BoundingBox: 0 0 ${realW_pt.toFixed(2)} ${h_pt.toFixed(2)}
-%%Creator: JMVN Tool
-%%Title: Pedreria Export
-%%EndComments
-`;
-            eps += `/c { 0 360 arc fill } def\n0 setgray\n`; 
-
-            globalPoints.forEach(p => {
-                const x = (p.x * scale).toFixed(2);
-                const y = (h_pt - (p.y * scale)).toFixed(2); 
-                eps += `${x} ${y} ${r.toFixed(2)} c\n`;
-            });
-            
-            eps += `%%EOF`;
-            return eps;
+            const scale = (parseFloat(document.getElementById('realWidthCm').value) * 28.3465) / canvasWidth;
+            const h_pt = canvasHeight * scale; const r = parseFloat(document.getElementById('radius').value) * scale;
+            let eps = `%!PS-Adobe-3.0 EPSF-3.0\n%%BoundingBox: 0 0 ${(canvasWidth*scale).toFixed(2)} ${h_pt.toFixed(2)}\n%%Creator: JMVN\n/c { 0 360 arc fill } def\n0 setgray\n`; 
+            globalPoints.forEach(p => { eps += `${(p.x * scale).toFixed(2)} ${(h_pt - (p.y * scale)).toFixed(2)} ${r.toFixed(2)} c\n`; });
+            return eps + `%%EOF`;
         }
-
     </script>
 </body>
 </html>
